@@ -4,7 +4,6 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
 import plotly.express as px
 from arch.univariate import SkewStudent
 
@@ -108,10 +107,10 @@ def run_monte_carlo_simulation(
     rebalance_each_year=True,
 ):
     # Draw annual shocks
-    inflation_matrix = norm.rvs(
+    inflation_matrix = np.random.normal(
         loc=inflation_rate, scale=inflation_vol, size=(NUM_RUNS, SIMULATION_YEARS)
     )
-    cash_returns_matrix = norm.rvs(
+    cash_returns_matrix = np.random.normal(
         loc=cash_return, scale=cash_vol, size=(NUM_RUNS, SIMULATION_YEARS)
     )
     stock_returns_matrix = draw_stock_simple_returns(
@@ -299,17 +298,8 @@ def generate_simulation_results(
 # --- Streamlit UI ---
 def main():
     st.set_page_config(page_title="Portfolio Monte Carlo Simulator", layout="wide")
-    # Prominent version badge
-    st.markdown(
-        f"""
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-            <h1 style="margin:0;">💰 Portfolio Longevity Simulator</h1>
-            <span style="background:#1f77b4;color:white;padding:4px 10px;border-radius:999px;font-weight:600;">{APP_VERSION}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.sidebar.markdown(f"**Version:** {APP_VERSION}")
+    st.title("💰 Portfolio Longevity Simulator")
+    # No version display in sidebar
 
     if "results" not in st.session_state:
         st.session_state["results"] = None
