@@ -563,13 +563,13 @@ def main():
                 st.caption(p_std)
 
             st.plotly_chart(stock_fig, use_container_width=True)
-        # Small horizontal labels beneath stock returns histogram
-        # Support 4-5 labels (now includes Skew and Kurtosis)
-        labels = list(stock_stat_labels)
-        cols = st.columns(len(labels))
-        for col, label in zip(cols, labels):
-            with col:
-                st.caption(label)
+            # Small horizontal labels beneath stock returns histogram
+            # Support 4-5 labels (now includes Skew and Kurtosis)
+            labels = list(stock_stat_labels)
+            cols = st.columns(len(labels))
+            for col, label in zip(cols, labels):
+                with col:
+                    st.caption(label)
             
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
