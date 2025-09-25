@@ -450,7 +450,7 @@ def main():
 
             m1, m2, m3 = st.columns(3)
             with m1:
-                st.metric("Median Value in 40 Years\n(in today's money)", median_str)
+                st.metric("Median Value at end\n(today's money)", median_str)
             with m2:
                 st.metric("Success Rate\n(% runs with positive end value)", success_str)
             with m3:
