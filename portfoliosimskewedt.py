@@ -6,14 +6,14 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from arch.univariate import SkewStudent
-from scipy.stats import norm, skew
+from scipy.stats import norm, skew, kurtosis
 
 # --- Configuration ---
 SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.5"
+APP_VERSION = "v1.3.6"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -344,6 +344,7 @@ def generate_simulation_results(
     stock_mean = np.mean(flat)
     stock_std = np.std(flat)
     stock_skew = skew(flat, bias=False)
+    stock_kurt = kurtosis(flat, fisher=True, bias=False)
     s_ql, s_qh = np.percentile(flat, [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     stock_df = pd.DataFrame(flat[(flat >= s_ql) & (flat <= s_qh)], columns=["Annual Return"])
     stock_fig = px.histogram(stock_df, x="Annual Return", nbins=200, histnorm="percent")
@@ -375,7 +376,8 @@ def generate_simulation_results(
         f"Median: {stock_median:.2%}",
         f"Mean: {stock_mean:.2%}",
         f"Std Dev: {stock_std:.2%}",
-        f"Skew: {stock_skew:.2f}"
+        f"Skew: {stock_skew:.2f}",
+        f"Excess Kurtosis: {stock_kurt:.2f}"
     )
 
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
