@@ -12,13 +12,13 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.2.0"
+APP_VERSION = "v1.3.0"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
 DEFAULT_SKEWT_LAMBDA = -0.2
-DEFAULT_STOCK_LOG_LOC = 0.065    # 6.5% log drift
-DEFAULT_STOCK_LOG_SCALE = 0.18   # 18% log scale
+DEFAULT_STOCK_LOG_LOC = 0.067657   # ~7% geometric => ln(1.07)
+DEFAULT_STOCK_LOG_SCALE = 0.17     # 17% log scale
 MIN_SIMPLE_RETURN = -0.99
 
 # Chart clipping
@@ -267,15 +267,17 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns):
     stock_flat = stock_returns.flatten()
     portfolio_flat = portfolio_returns.flatten()
 
-    thresholds = [-0.10, -0.20, -0.30, -0.40, -0.50]  # -10%, -20%, -30%, -40%, -50%
+    # Thresholds every 5% from -10% down to -50%
+    thresholds = [-(i / 100.0) for i in range(10, 51, 5)]
 
     rows = []
     index_labels = []
     for threshold in thresholds:
-        stock_pct = np.mean(stock_flat <= threshold) * 100
-        portfolio_pct = np.mean(portfolio_flat <= threshold) * 100
+        # "Under" semantics: strictly less than threshold
+        stock_pct = np.mean(stock_flat < threshold) * 100
+        portfolio_pct = np.mean(portfolio_flat < threshold) * 100
         rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%"])
-        index_labels.append(f"{int(abs(threshold) * 100)}% or worse")
+        index_labels.append(f"Under {int(-threshold * 100)}%")
 
     return pd.DataFrame(rows, columns=["Stock Only (%)", "Overall Portfolio (%)"], index=index_labels)
 
@@ -377,7 +379,7 @@ def main():
             _growth = np.maximum(_growth, MIN_INFL_FACTOR)
             implied_log_mean_percent = float(np.log(_growth) * 100.0)
 
-            st.metric("Implied Log Mean (%)", f"{implied_log_mean_percent:.2f}")
+            # Display removed per request; still computed for simulation
 
             skewt_nu = st.slider("Fat Tails (Nu)", min_value=3.0, max_value=20.0, value=float(DEFAULT_SKEWT_NU), step=0.5, help="Lower value = fatter tails")
             skewt_lambda = st.slider("Skewness (Lambda)", min_value=-0.9, max_value=0.9, value=float(DEFAULT_SKEWT_LAMBDA), step=0.05, help="Negative = left skew")
@@ -435,6 +437,9 @@ def main():
             st.dataframe(negative_returns_df)
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
+
+        # Version footer
+        st.caption(f"App version: {APP_VERSION}")
 
 
 if __name__ == "__main__":
