@@ -12,7 +12,7 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.1.0"
+APP_VERSION = "v1.2.0"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
@@ -359,32 +359,25 @@ def main():
             cash_vol_percent = st.slider("Cash Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
 
         with st.expander("Stock Model Assumptions", expanded=True):
-            # Default arithmetic stats implied by default log params
-            _def_arith_mean, _def_arith_vol = log_to_arithmetic_params(DEFAULT_STOCK_LOG_LOC, DEFAULT_STOCK_LOG_SCALE)
-            stock_arith_mean_percent = st.slider(
-                "Stock Return Mean (arithmetic %)",
+            # Default geometric mean implied by default log mean
+            _def_geom_mean_percent = float((np.exp(DEFAULT_STOCK_LOG_LOC) - 1.0) * 100.0)
+            stock_geom_mean_percent = st.slider(
+                "Stock Return Mean (geometric %)",
                 min_value=-20.0, max_value=30.0,
-                value=float(_def_arith_mean * 100.0), step=0.1,
+                value=_def_geom_mean_percent, step=0.1,
             )
-            stock_arith_vol_percent = st.slider(
-                "Stock Return Vol (arithmetic %)",
+            stock_log_vol_percent = st.slider(
+                "Stock Log Vol (%)",
                 min_value=5.0, max_value=50.0,
-                value=float(_def_arith_vol * 100.0), step=0.5,
+                value=float(DEFAULT_STOCK_LOG_SCALE * 100.0), step=0.5,
             )
 
-            # Compute implied log parameters (percent) for display and simulation
-            _mu_log, _sigma_log = arithmetic_to_log_params(
-                stock_arith_mean_percent / 100.0,
-                stock_arith_vol_percent / 100.0,
-            )
-            implied_log_mean_percent = _mu_log * 100.0
-            implied_log_vol_percent = _sigma_log * 100.0
+            # Compute implied log-mean (percent) for display and simulation
+            _growth = 1.0 + (stock_geom_mean_percent / 100.0)
+            _growth = np.maximum(_growth, MIN_INFL_FACTOR)
+            implied_log_mean_percent = float(np.log(_growth) * 100.0)
 
-            c1, c2 = st.columns(2)
-            with c1:
-                st.metric("Implied Log Mean (%)", f"{implied_log_mean_percent:.2f}")
-            with c2:
-                st.metric("Implied Log Vol (%)", f"{implied_log_vol_percent:.2f}")
+            st.metric("Implied Log Mean (%)", f"{implied_log_mean_percent:.2f}")
 
             skewt_nu = st.slider("Fat Tails (Nu)", min_value=3.0, max_value=20.0, value=float(DEFAULT_SKEWT_NU), step=0.5, help="Lower value = fatter tails")
             skewt_lambda = st.slider("Skewness (Lambda)", min_value=-0.9, max_value=0.9, value=float(DEFAULT_SKEWT_LAMBDA), step=0.05, help="Negative = left skew")
@@ -405,8 +398,8 @@ def main():
                 inflation_vol_percent,
                 cash_return_percent,
                 cash_vol_percent,
-                implied_log_mean_percent,
-                implied_log_vol_percent,
+                    implied_log_mean_percent,
+                    stock_log_vol_percent,
                 skewt_nu,
                 skewt_lambda,
                 withdrawal_timing,
