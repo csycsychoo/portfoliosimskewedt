@@ -13,7 +13,7 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.3"
+APP_VERSION = "v1.3.4"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -324,6 +324,8 @@ def generate_simulation_results(
     )
 
     median_val = np.median(final_values)
+    mean_val = np.mean(final_values)
+    std_val = np.std(final_values)
     success_rate = np.mean(final_values > 0) * 100
     outperform_rate = np.mean(final_values > start_value) * 100
 
@@ -338,6 +340,9 @@ def generate_simulation_results(
 
     # Stock returns chart
     flat = stock_returns.flatten()
+    stock_median = np.median(flat)
+    stock_mean = np.mean(flat)
+    stock_std = np.std(flat)
     s_ql, s_qh = np.percentile(flat, [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     stock_df = pd.DataFrame(flat[(flat >= s_ql) & (flat <= s_qh)], columns=["Annual Return"])
     stock_fig = px.histogram(stock_df, x="Annual Return", nbins=200, histnorm="percent")
@@ -359,7 +364,19 @@ def generate_simulation_results(
     pct_formatted = [f"${int(round(v)):,}" for v in pct_values]
     summary_percentiles_df = pd.DataFrame({"Outcome percentiles": pct_formatted}, index=pct_rows)
 
-    return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table
+    # Formatted stat labels for display under histograms
+    portfolio_stat_labels = (
+        f"Median: ${median_val:,.0f}",
+        f"Mean: ${mean_val:,.0f}",
+        f"Std Dev: ${std_val:,.0f}"
+    )
+    stock_stat_labels = (
+        f"Median: {stock_median:.2%}",
+        f"Mean: {stock_mean:.2%}",
+        f"Std Dev: {stock_std:.2%}"
+    )
+
+    return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
 
 
 # --- Streamlit UI ---
@@ -443,6 +460,8 @@ def main():
                 stock_fig,
                 summary_df,
                 negative_returns_df,
+                portfolio_stat_labels,
+                stock_stat_labels,
             ) = st.session_state["results"]
 
             m1, m2, m3 = st.columns(3)
@@ -453,9 +472,7 @@ def main():
             with m3:
                 st.metric("Outperformance Rate\n(end value > starting value)", outperform_str)
 
-            st.plotly_chart(hist_fig, use_container_width=True)
-            st.plotly_chart(stock_fig, use_container_width=True)
-
+            # Move histograms after the tables
             st.subheader("Ending portfolio values in today's money")
             st.dataframe(summary_df)
 
@@ -528,6 +545,29 @@ def main():
                 }
             )
             st.markdown('</div>', unsafe_allow_html=True)
+
+            # Histograms at bottom
+            st.plotly_chart(hist_fig, use_container_width=True)
+            # Small horizontal labels beneath portfolio values histogram
+            p_med, p_mean, p_std = portfolio_stat_labels
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.caption(p_med)
+            with c2:
+                st.caption(p_mean)
+            with c3:
+                st.caption(p_std)
+
+            st.plotly_chart(stock_fig, use_container_width=True)
+            # Small horizontal labels beneath stock returns histogram
+            s_med, s_mean, s_std = stock_stat_labels
+            d1, d2, d3 = st.columns(3)
+            with d1:
+                st.caption(s_med)
+            with d2:
+                st.caption(s_mean)
+            with d3:
+                st.caption(s_std)
             
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
