@@ -372,7 +372,7 @@ def generate_simulation_results(
         f"Mean: ${mean_val:,.0f}",
         f"Std Dev: ${std_val:,.0f}"
     )
-	stock_stat_labels = (
+    stock_stat_labels = (
 		f"Median: {stock_median:.2%}",
 		f"Mean: {stock_mean:.2%}",
 		f"Std Dev: {stock_std:.2%}",
