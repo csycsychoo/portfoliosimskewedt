@@ -48,7 +48,7 @@ def draw_skewt_log_returns(size, nu, lam, loc, scale):
 
     # Standardize the sample before applying loc and scale
     sample_mean = np.mean(logr_unscaled)
-    sample_std = np.std(logr_unscaled)
+    sample_std = np.std(logr_unscaled, ddof=1)  # Use sample standard deviation
     if not np.isfinite(sample_std) or sample_std < EPS:
         # Extremely unlikely with large n, but guard anyway
         sample_std = 1.0
@@ -217,6 +217,16 @@ def run_monte_carlo_simulation(
             portfolio_values[portfolio_values < 0] = 0.0
         else:
             # Track stock/cash legs without annual rebalance
+            # Calculate weighted portfolio return first (before withdrawals affect asset mix)
+            current_total = stock_values + cash_values
+            w_stock_current = np.zeros_like(current_total, dtype=float)
+            mask = current_total > 0
+            np.divide(stock_values, current_total, out=w_stock_current, where=mask)
+            
+            # Portfolio return is weighted average of asset returns
+            r_port = w_stock_current * r_stock + (1.0 - w_stock_current) * r_cash
+            portfolio_returns_matrix[:, year] = r_port
+            
             if withdrawal_timing == "Start of year":
                 stock_values, cash_values = apply_withdrawal(
                     None, spend_soy, stock_values, cash_values
@@ -239,19 +249,6 @@ def run_monte_carlo_simulation(
 
             stock_values[stock_values < 0] = 0.0
             cash_values[cash_values < 0] = 0.0
-            
-            # Calculate portfolio return for non-rebalancing case
-            total_values = stock_values + cash_values
-            prev_total = np.full(NUM_RUNS, start_value, dtype=np.float64) if year == 0 else np.sum([stock_values, cash_values], axis=0)
-            if year > 0:
-                # Calculate return based on previous year's total
-                prev_stock = stock_values / (1.0 + r_stock)
-                prev_cash = cash_values / (1.0 + r_cash)
-                prev_total = prev_stock + prev_cash
-            
-            # Calculate portfolio return
-            r_port = (total_values - prev_total) / np.maximum(prev_total, EPS)
-            portfolio_returns_matrix[:, year] = r_port
 
         # Update inflation compounding
         cumulative_inflation *= infl_factor
