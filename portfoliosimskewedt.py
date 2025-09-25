@@ -12,7 +12,7 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.2.0"
+APP_VERSION = "v1.2.1"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
@@ -439,3 +439,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    st.markdown("---")
+    st.markdown(f"<div style='text-align:center; color: gray;'>Version {APP_VERSION}</div>", unsafe_allow_html=True)
