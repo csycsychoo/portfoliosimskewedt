@@ -377,7 +377,7 @@ def generate_simulation_results(
         f"Mean: {stock_mean:.2%}",
         f"Std Dev: {stock_std:.2%}",
         f"Skew: {stock_skew:.2f}",
-        f"Kurtosis (tailness): {stock_kurt:.2f}"
+        f"Kurtosis (fat tails): {stock_kurt:.2f}"
     )
 
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
