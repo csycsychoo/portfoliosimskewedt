@@ -360,7 +360,7 @@ def generate_simulation_results(
     pct_values = np.percentile(df["Final Real Value"].values, pct_levels)
     pct_rows = [f"{p}%" for p in pct_levels]
     pct_formatted = [f"${int(round(v)):,}" for v in pct_values]
-    summary_percentiles_df = pd.DataFrame({"Final Real Value": pct_formatted}, index=pct_rows)
+    summary_percentiles_df = pd.DataFrame({"Outcome percentiles": pct_formatted}, index=pct_rows)
 
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table
 
@@ -450,11 +450,11 @@ def main():
 
             m1, m2, m3 = st.columns(3)
             with m1:
-                st.metric("Median Final Real Value", median_str)
+                st.metric("Median value in 40 years (in today's money)", median_str)
             with m2:
-                st.metric("Success Rate (% > $0)", success_str)
+                st.metric("% of runs we don't run out of money (end value>0)", success_str)
             with m3:
-                st.metric("% > Starting Value", outperform_str)
+                st.metric("Portfolio real value at end greater than starting value", outperform_str)
 
             st.plotly_chart(hist_fig, use_container_width=True)
             st.plotly_chart(stock_fig, use_container_width=True)
@@ -462,7 +462,7 @@ def main():
             st.subheader("Ending portfolio values in today's money")
             st.dataframe(summary_df)
 
-            st.subheader("Negative Returns Analysis")
+            st.subheader("% of years with extreme negative returns")
             
             # Create a combined comparison table
             sp_index = [f"Under {p}%" for p in [10, 15, 20, 25, 30, 35, 40, 45, 50]]
