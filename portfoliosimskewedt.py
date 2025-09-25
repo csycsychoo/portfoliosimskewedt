@@ -17,8 +17,8 @@ APP_VERSION = "v1.0.6"
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
 DEFAULT_SKEWT_LAMBDA = -0.2
-DEFAULT_STOCK_LOG_LOC = 0.055    # 5.5% log drift
-DEFAULT_STOCK_LOG_SCALE = 0.14   # 14% log scale
+DEFAULT_STOCK_LOG_LOC = 0.065    # 6.5% log drift
+DEFAULT_STOCK_LOG_SCALE = 0.18   # 18% log scale
 MIN_SIMPLE_RETURN = -0.99
 
 # Chart clipping
