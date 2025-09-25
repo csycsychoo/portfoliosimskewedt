@@ -12,7 +12,7 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.0"
+APP_VERSION = "v1.3.1"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
@@ -434,7 +434,25 @@ def main():
             st.dataframe(summary_df)
 
             st.subheader("Negative Returns Analysis")
-            st.dataframe(negative_returns_df)
+            col_sim, col_sp = st.columns(2)
+            with col_sim:
+                st.markdown("Simulation")
+                st.dataframe(negative_returns_df)
+            with col_sp:
+                st.markdown("S&P comparison 1974-2024")
+                sp_index = [f"Under {p}%" for p in [10, 15, 20, 25, 30, 35, 40, 50]]
+                sp_values = [
+                    "12.5%",
+                    "10.0%",
+                    "7.5%",
+                    "5.0%",
+                    "2.5%",
+                    "2.5%",
+                    "0.0%",
+                    "0.0%",
+                ]
+                sp_df = pd.DataFrame({"S&P 1974-2024 (%)": sp_values}, index=sp_index)
+                st.dataframe(sp_df)
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
 
