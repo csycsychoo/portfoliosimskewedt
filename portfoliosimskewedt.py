@@ -12,7 +12,7 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.0.6"
+APP_VERSION = "v1.1.0"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
@@ -87,6 +87,45 @@ def apply_withdrawal(portfolio_values, amount, stock_values=None, cash_values=No
         stock_values[stock_values < 0] = 0.0
         cash_values[cash_values < 0] = 0.0
         return stock_values, cash_values
+
+
+# Conversion helpers between arithmetic simple-return stats and log-return stats
+def arithmetic_to_log_params(mean_simple, vol_simple):
+    """
+    Convert arithmetic mean/vol of simple returns to implied log-mean/log-vol.
+
+    Uses lognormal moment relationships as an approximation:
+      sigma^2 = ln(1 + (vol^2) / (1 + mean)^2)
+      mu      = ln(1 + mean) - 0.5 * sigma^2
+
+    All inputs are in decimal (e.g., 0.08 for 8%).
+    """
+    mean_simple = np.clip(mean_simple, MIN_SIMPLE_RETURN + 1e-6, 1e6)
+    vol_simple = max(0.0, float(vol_simple))
+
+    growth = 1.0 + mean_simple
+    growth = np.maximum(growth, MIN_INFL_FACTOR)
+    denom = np.maximum(growth * growth, EPS)
+    sigma2 = np.log(1.0 + (vol_simple * vol_simple) / denom)
+    sigma2 = np.maximum(sigma2, 0.0)
+    sigma = np.sqrt(sigma2)
+    mu = np.log(growth) - 0.5 * sigma2
+    return float(mu), float(sigma)
+
+
+def log_to_arithmetic_params(mu, sigma):
+    """
+    Convert log-mean/log-vol to arithmetic mean/vol of simple returns, using
+    lognormal moment relationships as an approximation:
+      E[1+r] = exp(mu + 0.5*sigma^2)
+      Var(1+r) = (exp(sigma^2) - 1) * exp(2*mu + sigma^2)
+    """
+    mu = float(mu)
+    sigma = max(0.0, float(sigma))
+    mean_simple = np.exp(mu + 0.5 * sigma * sigma) - 1.0
+    var_simple = (np.exp(sigma * sigma) - 1.0) * np.exp(2.0 * mu + sigma * sigma)
+    vol_simple = np.sqrt(np.maximum(var_simple, 0.0))
+    return float(mean_simple), float(vol_simple)
 
 
 # --- Core simulation ---
@@ -320,8 +359,33 @@ def main():
             cash_vol_percent = st.slider("Cash Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
 
         with st.expander("Stock Model Assumptions", expanded=True):
-            stock_log_loc_percent = st.slider("Stock Return Mean (log %)", min_value=0.0, max_value=20.0, value=float(DEFAULT_STOCK_LOG_LOC * 100), step=0.1)
-            stock_log_scale_percent = st.slider("Stock Return Vol (log %)", min_value=5.0, max_value=30.0, value=float(DEFAULT_STOCK_LOG_SCALE * 100), step=0.5)
+            # Default arithmetic stats implied by default log params
+            _def_arith_mean, _def_arith_vol = log_to_arithmetic_params(DEFAULT_STOCK_LOG_LOC, DEFAULT_STOCK_LOG_SCALE)
+            stock_arith_mean_percent = st.slider(
+                "Stock Return Mean (arithmetic %)",
+                min_value=-20.0, max_value=30.0,
+                value=float(_def_arith_mean * 100.0), step=0.1,
+            )
+            stock_arith_vol_percent = st.slider(
+                "Stock Return Vol (arithmetic %)",
+                min_value=5.0, max_value=50.0,
+                value=float(_def_arith_vol * 100.0), step=0.5,
+            )
+
+            # Compute implied log parameters (percent) for display and simulation
+            _mu_log, _sigma_log = arithmetic_to_log_params(
+                stock_arith_mean_percent / 100.0,
+                stock_arith_vol_percent / 100.0,
+            )
+            implied_log_mean_percent = _mu_log * 100.0
+            implied_log_vol_percent = _sigma_log * 100.0
+
+            c1, c2 = st.columns(2)
+            with c1:
+                st.metric("Implied Log Mean (%)", f"{implied_log_mean_percent:.2f}")
+            with c2:
+                st.metric("Implied Log Vol (%)", f"{implied_log_vol_percent:.2f}")
+
             skewt_nu = st.slider("Fat Tails (Nu)", min_value=3.0, max_value=20.0, value=float(DEFAULT_SKEWT_NU), step=0.5, help="Lower value = fatter tails")
             skewt_lambda = st.slider("Skewness (Lambda)", min_value=-0.9, max_value=0.9, value=float(DEFAULT_SKEWT_LAMBDA), step=0.05, help="Negative = left skew")
 
@@ -341,8 +405,8 @@ def main():
                 inflation_vol_percent,
                 cash_return_percent,
                 cash_vol_percent,
-                stock_log_loc_percent,
-                stock_log_scale_percent,
+                implied_log_mean_percent,
+                implied_log_vol_percent,
                 skewt_nu,
                 skewt_lambda,
                 withdrawal_timing,
