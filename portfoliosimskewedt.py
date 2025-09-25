@@ -529,17 +529,6 @@ def main():
             )
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Add a compact mobile view for very small screens
-            with st.expander("📱 Compact Mobile View", expanded=False):
-                st.markdown("**Negative Returns Comparison**")
-                for i, threshold in enumerate([10, 15, 20, 25, 30, 35, 40, 45, 50]):
-                    st.markdown(f"""
-                    **Under {threshold}%:**
-                    - Stock Only: {negative_returns_df.iloc[i]["Stock Only (%)"]}
-                    - Portfolio: {negative_returns_df.iloc[i]["Overall Portfolio (%)"]}
-                    - Normal Model: {negative_returns_df.iloc[i]["Normal (same g, log vol) (%)"]}
-                    - S&P 1974-2024: {sp_values[i]}
-                    """)
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
 
