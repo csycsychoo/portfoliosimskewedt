@@ -16,8 +16,8 @@ NUM_RUNS = 10_000
 APP_VERSION = "v1.3.2"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
-DEFAULT_SKEWT_NU = 7.0
-DEFAULT_SKEWT_LAMBDA = -0.2
+DEFAULT_SKEWT_NU = 5.0
+DEFAULT_SKEWT_LAMBDA = -0.3
 DEFAULT_STOCK_LOG_LOC = 0.067657   # ~7% geometric => ln(1.07)
 DEFAULT_STOCK_LOG_SCALE = 0.17     # 17% log scale
 MIN_SIMPLE_RETURN = -0.99
@@ -376,7 +376,7 @@ def main():
     with left_col:
         with st.expander("Initial Setup", expanded=True):
             start_value = st.number_input("Starting Value ($)", value=7_000_000, step=50_000, min_value=0)
-            real_spending = st.number_input("Annual Real Spending ($)", value=120_000, step=1_000, min_value=0)
+            real_spending = st.number_input("Annual Real Spending ($)", value=150_000, step=1_000, min_value=0)
         with st.expander("Asset Allocation", expanded=True):
             stock_prop_percent = st.slider("Stock %", min_value=0, max_value=100, value=70, step=5)
         with st.expander("Economic Assumptions", expanded=True):
