@@ -13,7 +13,7 @@ SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.2"
+APP_VERSION = "v1.3.3"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -290,7 +290,7 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns, stoc
                 norm_pct = 100.0 if r_det < threshold else 0.0
 
         rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%", f"{norm_pct:.1f}%"])
-        index_labels.append(f"Under {int(-threshold * 100)}%")
+        index_labels.append(f"Under {int(threshold * 100)}%")
 
     return pd.DataFrame(
         rows,
@@ -462,7 +462,7 @@ def main():
             st.subheader("% of years with extreme negative returns")
             
             # Create a combined comparison table
-            sp_index = [f"Under {p}%" for p in [10, 15, 20, 25, 30, 35, 40, 45, 50]]
+            sp_index = [f"Under -{p}%" for p in [10, 15, 20, 25, 30, 35, 40, 45, 50]]
             sp_values = [
                 "12.5%",
                 "10.0%",
@@ -479,7 +479,7 @@ def main():
             comparison_data = []
             for i, threshold in enumerate([10, 15, 20, 25, 30, 35, 40, 45, 50]):
                 row = [
-                    f"Under {threshold}%",
+                    f"Under -{threshold}%",
                     negative_returns_df.iloc[i]["Stock Only (%)"],
                     negative_returns_df.iloc[i]["Overall Portfolio (%)"],
                     negative_returns_df.iloc[i]["Normal (same g, log vol) (%)"],
