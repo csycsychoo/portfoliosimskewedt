@@ -377,7 +377,7 @@ def generate_simulation_results(
         f"Mean: {stock_mean:.2%}",
         f"Std Dev: {stock_std:.2%}",
         f"Skew: {stock_skew:.2f}",
-        f"Kurtosis (tailness): {stock_kurt:.2f}"
+        f"Kurtosis (fat tails): {stock_kurt:.2f}"
     )
 
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
@@ -563,13 +563,13 @@ def main():
                 st.caption(p_std)
 
             st.plotly_chart(stock_fig, use_container_width=True)
-        # Small horizontal labels beneath stock returns histogram
-        # Support 4-5 labels (now includes Skew and Kurtosis)
-        labels = list(stock_stat_labels)
-        cols = st.columns(len(labels))
-        for col, label in zip(cols, labels):
-            with col:
-                st.caption(label)
+            # Small horizontal labels beneath stock returns histogram
+            # Support 4-5 labels (now includes Skew and Kurtosis)
+            labels = list(stock_stat_labels)
+            cols = st.columns(len(labels))
+            for col, label in zip(cols, labels):
+                with col:
+                    st.caption(label)
             
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
