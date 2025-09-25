@@ -6,13 +6,14 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from arch.univariate import SkewStudent
+from scipy.stats import norm
 
 # --- Configuration ---
 SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.1"
+APP_VERSION = "v1.3.2"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 7.0
@@ -262,8 +263,8 @@ def run_monte_carlo_simulation(
 
 
 # --- Negative returns analysis ---
-def calculate_negative_return_percentages(stock_returns, portfolio_returns):
-    """Calculate percentage of years at or below thresholds; return 2-column table."""
+def calculate_negative_return_percentages(stock_returns, portfolio_returns, stock_log_mu, stock_log_sigma):
+    """Calculate percentage of years at or below thresholds; return 3-column table including Normal model."""
     stock_flat = stock_returns.flatten()
     portfolio_flat = portfolio_returns.flatten()
 
@@ -276,10 +277,33 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns):
         # "Under" semantics: strictly less than threshold
         stock_pct = np.mean(stock_flat < threshold) * 100
         portfolio_pct = np.mean(portfolio_flat < threshold) * 100
-        rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%"])
+
+        # Normal comparison with same geometric mean (mu = ln(1+g)) and log vol (sigma)
+        one_plus_k = 1.0 + threshold
+        if stock_log_sigma > 0.0 and one_plus_k > 0.0:
+            z = (np.log(one_plus_k) - float(stock_log_mu)) / float(stock_log_sigma)
+            norm_pct = float(norm.cdf(z) * 100.0)
+        else:
+            # Degenerate cases: sigma == 0 => deterministic r = exp(mu)-1
+            # If 1+k <= 0 (k <= -100%), probability is 0 since r > -100% always
+            if one_plus_k <= 0.0:
+                norm_pct = 0.0
+            else:
+                r_det = np.exp(float(stock_log_mu)) - 1.0
+                norm_pct = 100.0 if r_det < threshold else 0.0
+
+        rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%", f"{norm_pct:.1f}%"])
         index_labels.append(f"Under {int(-threshold * 100)}%")
 
-    return pd.DataFrame(rows, columns=["Stock Only (%)", "Overall Portfolio (%)"], index=index_labels)
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "Stock Only (%)",
+            "Overall Portfolio (%)",
+            "Normal (same g, log vol) (%)",
+        ],
+        index=index_labels,
+    )
 
 # --- Results processor ---
 def generate_simulation_results(
@@ -323,8 +347,13 @@ def generate_simulation_results(
     stock_fig.update_layout(yaxis_title="%", title="Annual Stock Returns (clipped)")
     stock_fig.update_xaxes(tickformat=".2%")
 
-    # Negative returns analysis
-    negative_returns_table = calculate_negative_return_percentages(stock_returns, portfolio_returns)
+    # Negative returns analysis (include Normal comparison with same log-mean/vol)
+    negative_returns_table = calculate_negative_return_percentages(
+        stock_returns,
+        portfolio_returns,
+        stock_log_loc_percent / 100.0,
+        stock_log_scale_percent / 100.0,
+    )
 
     # Percentile summary: show only 10%..90% percentiles, formatted as $ with thousands separators
     pct_levels = list(range(10, 100, 10))  # 10,20,...,90
