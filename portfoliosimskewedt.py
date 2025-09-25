@@ -463,26 +463,86 @@ def main():
             st.dataframe(summary_df)
 
             st.subheader("Negative Returns Analysis")
-            col_sim, col_sp = st.columns(2)
-            with col_sim:
-                st.markdown("Simulation")
-                st.dataframe(negative_returns_df)
-            with col_sp:
-                st.markdown("S&P comparison 1974-2024")
-                sp_index = [f"Under {p}%" for p in [10, 15, 20, 25, 30, 35, 40, 45, 50]]
-                sp_values = [
-                    "12.5%",
-                    "10.0%",
-                    "7.5%",
-                    "5.0%",
-                    "2.5%",
-                    "2.5%",
-                    "0.0%",
-                    "0.0%",
-                    "0.0%",
+            
+            # Create a combined comparison table
+            sp_index = [f"Under {p}%" for p in [10, 15, 20, 25, 30, 35, 40, 45, 50]]
+            sp_values = [
+                "12.5%",
+                "10.0%",
+                "7.5%",
+                "5.0%",
+                "2.5%",
+                "2.5%",
+                "0.0%",
+                "0.0%",
+                "0.0%",
+            ]
+            
+            # Create comparison table with all three models
+            comparison_data = []
+            for i, threshold in enumerate([10, 15, 20, 25, 30, 35, 40, 45, 50]):
+                row = [
+                    f"Under {threshold}%",
+                    negative_returns_df.iloc[i]["Stock Only (%)"],
+                    negative_returns_df.iloc[i]["Overall Portfolio (%)"],
+                    negative_returns_df.iloc[i]["Normal (same g, log vol) (%)"],
+                    sp_values[i]
                 ]
-                sp_df = pd.DataFrame({"S&P 1974-2024 (%)": sp_values}, index=sp_index)
-                st.dataframe(sp_df)
+                comparison_data.append(row)
+            
+            comparison_df = pd.DataFrame(
+                comparison_data,
+                columns=[
+                    "Threshold",
+                    "Stock Only",
+                    "Portfolio",
+                    "Normal Model",
+                    "S&P 1974-2024"
+                ]
+            )
+            
+            # Add mobile-friendly CSS styling
+            st.markdown("""
+            <style>
+            .comparison-table {
+                font-size: 14px;
+                overflow-x: auto;
+            }
+            @media (max-width: 768px) {
+                .comparison-table {
+                    font-size: 12px;
+                }
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Display the comparison table with mobile-friendly styling
+            st.markdown('<div class="comparison-table">', unsafe_allow_html=True)
+            st.dataframe(
+                comparison_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Threshold": st.column_config.TextColumn("Threshold", width="small"),
+                    "Stock Only": st.column_config.TextColumn("Stock Only", width="small"),
+                    "Portfolio": st.column_config.TextColumn("Portfolio", width="small"),
+                    "Normal Model": st.column_config.TextColumn("Normal Model", width="small"),
+                    "S&P 1974-2024": st.column_config.TextColumn("S&P 1974-2024", width="small")
+                }
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Add a compact mobile view for very small screens
+            with st.expander("📱 Compact Mobile View", expanded=False):
+                st.markdown("**Negative Returns Comparison**")
+                for i, threshold in enumerate([10, 15, 20, 25, 30, 35, 40, 45, 50]):
+                    st.markdown(f"""
+                    **Under {threshold}%:**
+                    - Stock Only: {negative_returns_df.iloc[i]["Stock Only (%)"]}
+                    - Portfolio: {negative_returns_df.iloc[i]["Overall Portfolio (%)"]}
+                    - Normal Model: {negative_returns_df.iloc[i]["Normal (same g, log vol) (%)"]}
+                    - S&P 1974-2024: {sp_values[i]}
+                    """)
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
 
