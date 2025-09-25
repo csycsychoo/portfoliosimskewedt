@@ -9,11 +9,11 @@ from arch.univariate import SkewStudent
 from scipy.stats import norm, skew, kurtosis
 
 # --- Configuration ---
-SIMULATION_YEARS = 40
+SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.6"
+APP_VERSION = "v1.3.7"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -143,18 +143,19 @@ def run_monte_carlo_simulation(
     stock_log_scale,
     skewt_nu,
     skewt_lambda,
+    simulation_years,
     withdrawal_timing="Mid-year",
     rebalance_each_year=True,
 ):
     # Draw annual shocks
     inflation_matrix = np.random.normal(
-        loc=inflation_rate, scale=inflation_vol, size=(NUM_RUNS, SIMULATION_YEARS)
+        loc=inflation_rate, scale=inflation_vol, size=(NUM_RUNS, simulation_years)
     )
     cash_returns_matrix = np.random.normal(
-        loc=cash_return, scale=cash_vol, size=(NUM_RUNS, SIMULATION_YEARS)
+        loc=cash_return, scale=cash_vol, size=(NUM_RUNS, simulation_years)
     )
     stock_returns_matrix = draw_stock_simple_returns(
-        (NUM_RUNS, SIMULATION_YEARS),
+        (NUM_RUNS, simulation_years),
         nu=skewt_nu,
         lam=skewt_lambda,
         loc=stock_log_loc,
@@ -164,7 +165,7 @@ def run_monte_carlo_simulation(
     cumulative_inflation = np.ones(NUM_RUNS, dtype=np.float64)
     
     # Track portfolio returns for analysis
-    portfolio_returns_matrix = np.zeros((NUM_RUNS, SIMULATION_YEARS))
+    portfolio_returns_matrix = np.zeros((NUM_RUNS, simulation_years))
 
     if rebalance_each_year:
         portfolio_values = np.full(NUM_RUNS, start_value, dtype=np.float64)
@@ -172,7 +173,7 @@ def run_monte_carlo_simulation(
         stock_values = np.full(NUM_RUNS, start_value * stock_prop, dtype=np.float64)
         cash_values = np.full(NUM_RUNS, start_value * cash_prop, dtype=np.float64)
 
-    for year in range(SIMULATION_YEARS):
+    for year in range(simulation_years):
         # Inflation factor for the year, clamped to be safely positive
         infl_factor = 1.0 + inflation_matrix[:, year]
         infl_factor = np.maximum(infl_factor, MIN_INFL_FACTOR)
@@ -309,6 +310,7 @@ def generate_simulation_results(
     cash_return_percent, cash_vol_percent,
     stock_log_loc_percent, stock_log_scale_percent,
     skewt_nu, skewt_lambda,
+    simulation_years,
     withdrawal_timing, rebalance_each_year
 ):
     stock_prop = stock_prop_percent / 100.0
@@ -320,6 +322,7 @@ def generate_simulation_results(
         inflation_rate_percent / 100, inflation_vol_percent / 100,
         stock_log_loc_percent / 100, stock_log_scale_percent / 100,
         skewt_nu, skewt_lambda,
+        simulation_years,
         withdrawal_timing, rebalance_each_year
     )
 
@@ -334,7 +337,7 @@ def generate_simulation_results(
     ql, qh = np.percentile(df["Final Real Value"], [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     df_plot = df[(df["Final Real Value"] >= ql) & (df["Final Real Value"] <= qh)]
     fig = px.histogram(df_plot, x="Final Real Value", nbins=200, histnorm="percent")
-    fig.update_layout(yaxis_title="%", title=f"{NUM_RUNS:,} Sims After {SIMULATION_YEARS}y (clipped)")
+    fig.update_layout(yaxis_title="%", title=f"{NUM_RUNS:,} Sims After {simulation_years}y (clipped)")
     fig.add_vline(x=start_value, line_dash="dash", line_color="red")
     fig.add_vline(x=median_val, line_dash="dash", line_color="green")
 
@@ -398,6 +401,7 @@ def main():
         with st.expander("Initial Setup", expanded=True):
             start_value = st.number_input("Starting Value ($)", value=7_000_000, step=50_000, min_value=0)
             real_spending = st.number_input("Annual Real Spending ($)", value=150_000, step=1_000, min_value=0)
+            simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
         with st.expander("Asset Allocation", expanded=True):
             stock_prop_percent = st.slider("Stock %", min_value=0, max_value=100, value=70, step=5)
         with st.expander("Economic Assumptions", expanded=True):
@@ -451,6 +455,7 @@ def main():
                     stock_log_vol_percent,
                 skewt_nu,
                 skewt_lambda,
+                int(simulation_years),
                 withdrawal_timing,
                 rebalance_each_year,
             )
