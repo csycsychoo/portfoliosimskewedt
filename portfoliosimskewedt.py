@@ -262,8 +262,10 @@ def run_monte_carlo_simulation(
 
 
 # --- Negative returns analysis ---
-def calculate_negative_return_percentages(stock_returns, portfolio_returns):
-    """Calculate percentage of years at or below thresholds; return 2-column table."""
+def calculate_negative_return_percentages(stock_returns, portfolio_returns, stock_geom_return, stock_log_vol):
+    """Calculate percentage of years at or below thresholds; return 3-column table with normal distribution comparison."""
+    from scipy.stats import norm
+    
     stock_flat = stock_returns.flatten()
     portfolio_flat = portfolio_returns.flatten()
 
@@ -276,10 +278,17 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns):
         # "Under" semantics: strictly less than threshold
         stock_pct = np.mean(stock_flat < threshold) * 100
         portfolio_pct = np.mean(portfolio_flat < threshold) * 100
-        rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%"])
+        
+        # Normal distribution comparison using the formula:
+        # P(R < k) = Φ((ln(1+k) - ln(1+g))/σ)
+        # where g is geometric return and σ is log volatility
+        z_score = (np.log(1 + threshold) - np.log(1 + stock_geom_return)) / stock_log_vol
+        normal_pct = norm.cdf(z_score) * 100
+        
+        rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%", f"{normal_pct:.1f}%"])
         index_labels.append(f"Under {int(-threshold * 100)}%")
 
-    return pd.DataFrame(rows, columns=["Stock Only (%)", "Overall Portfolio (%)"], index=index_labels)
+    return pd.DataFrame(rows, columns=["Stock Only (%)", "Overall Portfolio (%)", "Normal Distribution (%)"], index=index_labels)
 
 # --- Results processor ---
 def generate_simulation_results(
@@ -323,8 +332,13 @@ def generate_simulation_results(
     stock_fig.update_layout(yaxis_title="%", title="Annual Stock Returns (clipped)")
     stock_fig.update_xaxes(tickformat=".2%")
 
+    # Calculate geometric return and log volatility for normal distribution comparison
+    stock_flat = stock_returns.flatten()
+    stock_geom_return = np.exp(np.mean(np.log(1 + stock_flat))) - 1  # Geometric mean return
+    stock_log_vol = np.std(np.log(1 + stock_flat))  # Log volatility
+    
     # Negative returns analysis
-    negative_returns_table = calculate_negative_return_percentages(stock_returns, portfolio_returns)
+    negative_returns_table = calculate_negative_return_percentages(stock_returns, portfolio_returns, stock_geom_return, stock_log_vol)
 
     # Percentile summary: show only 10%..90% percentiles, formatted as $ with thousands separators
     pct_levels = list(range(10, 100, 10))  # 10,20,...,90
