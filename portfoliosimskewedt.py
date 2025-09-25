@@ -450,11 +450,11 @@ def main():
 
             m1, m2, m3 = st.columns(3)
             with m1:
-                st.metric("Median value in 40 years (in today's money)", median_str)
+                st.metric("Median Value in 40 Years\n(in today's money)", median_str)
             with m2:
-                st.metric("% of runs we don't run out of money (end value>0)", success_str)
+                st.metric("Success Rate\n(% runs with positive end value)", success_str)
             with m3:
-                st.metric("Portfolio real value at end greater than starting value", outperform_str)
+                st.metric("Outperformance Rate\n(end value > starting value)", outperform_str)
 
             st.plotly_chart(hist_fig, use_container_width=True)
             st.plotly_chart(stock_fig, use_container_width=True)
