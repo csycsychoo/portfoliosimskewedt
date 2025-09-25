@@ -6,14 +6,14 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from arch.univariate import SkewStudent
-from scipy.stats import norm, skew
+from scipy.stats import norm, skew, kurtosis
 
 # --- Configuration ---
 SIMULATION_YEARS = 40
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.5"
+APP_VERSION = "v1.3.6"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -343,7 +343,8 @@ def generate_simulation_results(
     stock_median = np.median(flat)
     stock_mean = np.mean(flat)
     stock_std = np.std(flat)
-    stock_skew = skew(flat, bias=False)
+	stock_skew = skew(flat, bias=False)
+	stock_kurt = kurtosis(flat, fisher=True, bias=False)
     s_ql, s_qh = np.percentile(flat, [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     stock_df = pd.DataFrame(flat[(flat >= s_ql) & (flat <= s_qh)], columns=["Annual Return"])
     stock_fig = px.histogram(stock_df, x="Annual Return", nbins=200, histnorm="percent")
@@ -371,12 +372,13 @@ def generate_simulation_results(
         f"Mean: ${mean_val:,.0f}",
         f"Std Dev: ${std_val:,.0f}"
     )
-    stock_stat_labels = (
-        f"Median: {stock_median:.2%}",
-        f"Mean: {stock_mean:.2%}",
-        f"Std Dev: {stock_std:.2%}",
-        f"Skew: {stock_skew:.2f}"
-    )
+	stock_stat_labels = (
+		f"Median: {stock_median:.2%}",
+		f"Mean: {stock_mean:.2%}",
+		f"Std Dev: {stock_std:.2%}",
+		f"Skew: {stock_skew:.2f}",
+		f"Kurtosis: {stock_kurt:.2f}"
+	)
 
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
 
@@ -561,15 +563,13 @@ def main():
                 st.caption(p_std)
 
             st.plotly_chart(stock_fig, use_container_width=True)
-            # Small horizontal labels beneath stock returns histogram
-            s_med, s_mean, s_std = stock_stat_labels
-            d1, d2, d3 = st.columns(3)
-            with d1:
-                st.caption(s_med)
-            with d2:
-                st.caption(s_mean)
-            with d3:
-                st.caption(s_std)
+		# Small horizontal labels beneath stock returns histogram
+		# Support 4-5 labels (now includes Skew and Kurtosis)
+		labels = list(stock_stat_labels)
+		cols = st.columns(len(labels))
+		for col, label in zip(cols, labels):
+			with col:
+				st.caption(label)
             
         else:
             st.info("Set your assumptions on the left and click 'Run Simulation'.")
