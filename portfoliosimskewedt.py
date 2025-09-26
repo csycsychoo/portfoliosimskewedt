@@ -93,45 +93,7 @@ def apply_withdrawal(portfolio_values, amount, stock_values=None, cash_values=No
         cash_values[cash_values < 0] = 0.0
         return stock_values, cash_values
 
-
-# Conversion helpers between arithmetic simple-return stats and log-return stats
-def arithmetic_to_log_params(mean_simple, vol_simple):
-    """
-    Convert arithmetic mean/vol of simple returns to implied log-mean/log-vol.
-
-    Uses lognormal moment relationships as an approximation:
-      sigma^2 = ln(1 + (vol^2) / (1 + mean)^2)
-      mu      = ln(1 + mean) - 0.5 * sigma^2
-
-    All inputs are in decimal (e.g., 0.08 for 8%).
-    """
-    mean_simple = np.clip(mean_simple, MIN_SIMPLE_RETURN + 1e-6, 1e6)
-    vol_simple = max(0.0, float(vol_simple))
-
-    growth = 1.0 + mean_simple
-    growth = np.maximum(growth, MIN_INFL_FACTOR)
-    denom = np.maximum(growth * growth, EPS)
-    sigma2 = np.log(1.0 + (vol_simple * vol_simple) / denom)
-    sigma2 = np.maximum(sigma2, 0.0)
-    sigma = np.sqrt(sigma2)
-    mu = np.log(growth) - 0.5 * sigma2
-    return float(mu), float(sigma)
-
-
-def log_to_arithmetic_params(mu, sigma):
-    """
-    Convert log-mean/log-vol to arithmetic mean/vol of simple returns, using
-    lognormal moment relationships as an approximation:
-      E[1+r] = exp(mu + 0.5*sigma^2)
-      Var(1+r) = (exp(sigma^2) - 1) * exp(2*mu + sigma^2)
-    """
-    mu = float(mu)
-    sigma = max(0.0, float(sigma))
-    mean_simple = np.exp(mu + 0.5 * sigma * sigma) - 1.0
-    var_simple = (np.exp(sigma * sigma) - 1.0) * np.exp(2.0 * mu + sigma * sigma)
-    vol_simple = np.sqrt(np.maximum(var_simple, 0.0))
-    return float(mean_simple), float(vol_simple)
-
+ 
 
 # --- Core simulation ---
 def run_monte_carlo_simulation(
