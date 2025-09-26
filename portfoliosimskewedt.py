@@ -368,7 +368,7 @@ def main():
         with st.expander("Initial Setup", expanded=True):
             start_value = st.number_input("Starting Value ($)", value=7_000_000, step=50_000, min_value=0)
             real_spending = st.number_input("Annual Real Spending ($)", value=150_000, step=1_000, min_value=0)
-            simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
+            simulation_years = st.number_input("Simulation Years", value=SIMULATION_YEARS, step=1, min_value=1)
         with st.expander("Asset Allocation", expanded=True):
             stock_prop_percent = st.slider("Stock %", min_value=0, max_value=100, value=70, step=5)
         with st.expander("Economic Assumptions", expanded=True):
