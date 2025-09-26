@@ -63,6 +63,8 @@ def draw_skewt_log_returns(size, nu, lam, loc, scale):
 
 def draw_stock_simple_returns(size, nu, lam, loc, scale):
     logr = draw_skewt_log_returns(size, nu, lam, loc, scale)
+    #Above returns the the continuous return "r". S(t) = S(t-1) exp (r). Also called log return because ln (St/St-1) = r
+    #Taking exponent exp(r) = S(t)/S(t-1)=ratio of prices between years. Expm1 deducts 1, giving the simple return [S(t)-S(t-1)]/S(t-1)
     r = np.expm1(logr)
     return np.maximum(r, MIN_SIMPLE_RETURN)
 
