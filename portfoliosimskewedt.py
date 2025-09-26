@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.7"
+APP_VERSION = "v1.3.8"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
