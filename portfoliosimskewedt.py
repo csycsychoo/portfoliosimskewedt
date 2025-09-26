@@ -388,6 +388,8 @@ def main():
                 min_value=-20.0, max_value=30.0,
                 value=_def_geom_mean_percent, step=0.1,
             )
+            erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
+            st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
             stock_log_vol_percent = st.slider(
                 "Stock Log Vol (%)",
                 min_value=5.0, max_value=50.0,
