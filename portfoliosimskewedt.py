@@ -38,6 +38,7 @@ def draw_skewt_log_returns(size, nu, lam, loc, scale):
     """
     Draws log-returns with a skewed Student-t shape and then standardizes the
     sample to mean 0 / std 1 before applying target loc (mean) and scale (std).
+    log-return is same as continuously compounded return for 1 year i.e. r in exp(rt) where t is 1 year
     """
     n = int(np.prod(size))
     dist = SkewStudent()
