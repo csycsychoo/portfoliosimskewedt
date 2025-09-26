@@ -310,8 +310,9 @@ def generate_simulation_results(
     # Stock returns chart
     flat = stock_returns.flatten()
     stock_median = np.median(flat)
-    stock_mean = np.mean(flat)
+    stock_mean = np.mean(flat) #this is the simple arithmetic mean, not geometric mean. The stock returns are not in sequence for a run, so geo mean cannot be calculated easily
     stock_std = np.std(flat)
+    # Even if the underlying student log return "r" is negatively skewed, the simple return being Pt/Pt-1 = exp(r) will tend to be positive because "r" is exponentiated which makes minimum value 0 and positive "r" magnified
     stock_skew = skew(flat, bias=False)
     stock_kurt = kurtosis(flat, fisher=True, bias=False)
     s_ql, s_qh = np.percentile(flat, [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
@@ -342,11 +343,11 @@ def generate_simulation_results(
         f"Std Dev: ${std_val:,.0f}"
     )
     stock_stat_labels = (
-        f"Median: {stock_median:.2%}",
-        f"Mean: {stock_mean:.2%}",
-        f"Std Dev: {stock_std:.2%}",
-        f"Skew: {stock_skew:.2f}",
-        f"Kurtosis (fat tails): {stock_kurt:.2f}"
+        f"Median of simple returns: {stock_median:.2%}",
+        f"Arithmetic Mean of simple returns: {stock_mean:.2%}",
+        f"Std Dev of simple returns: {stock_std:.2%}",
+        f"Skew of simple returns: {stock_skew:.2f}",
+        f"Kurtosis (fat tails) of simple returns: {stock_kurt:.2f}"
     )
 
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
@@ -379,9 +380,11 @@ def main():
 
         with st.expander("Stock Model Assumptions", expanded=True):
             # Default geometric mean implied by default log mean
+            # Avg geo mean + 1 = ((Pt)/(P0))^(1/t)=(exp(avg r * t))^ (1/t), where avg r is average log mean/continuously compounded rate
+            # Avg geo mean = exp(avg r) -1
             _def_geom_mean_percent = float((np.exp(DEFAULT_STOCK_LOG_LOC) - 1.0) * 100.0)
             stock_geom_mean_percent = st.slider(
-                "Stock Return Mean (geometric %)",
+                "Stock Return Average % (Geometric mean)",
                 min_value=-20.0, max_value=30.0,
                 value=_def_geom_mean_percent, step=0.1,
             )
