@@ -42,11 +42,12 @@ def draw_skewt_log_returns(size, nu, lam, loc, scale):
     n = int(np.prod(size))
     dist = SkewStudent()
 
-    # Draw raw samples to get desired distribution shape
+    # Uniformly draw a set of percentiles 
     p = np.random.uniform(size=n)
+    # PPF is percent point function, inverse of CDF. Given percentile, it gives the value of the skewed student t at that percentile with nu skewness and lam tails
     logr_unscaled = dist.ppf(p, [nu, lam])
 
-    # Standardize the sample before applying loc and scale
+    # The values generated from ppdf have random mean and variance. First standardize the sample to mean zero and std dev 1
     sample_mean = np.mean(logr_unscaled)
     sample_std = np.std(logr_unscaled, ddof=1)  # Use sample standard deviation
     if not np.isfinite(sample_std) or sample_std < EPS:
