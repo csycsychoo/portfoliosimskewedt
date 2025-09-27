@@ -415,7 +415,7 @@ def main():
 
     with left_col:
         with st.expander("Initial Setup", expanded=True):
-            start_value = st.number_input("Starting Portfolio ($)", value=7_000_000, step=50_000, min_value=0)
+            start_value = st.number_input("Starting Portfolio ($)", value=5_000_000, step=50_000, min_value=0)
             real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=150_000, step=1_000, min_value=0)
             simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
             stock_prop_percent = st.slider("Stock % in Portfolio", min_value=0, max_value=100, value=70, step=5)
@@ -430,7 +430,7 @@ def main():
                 min_value=-20.0, max_value=30.0,
                 value=_def_geom_mean_percent, step=0.1,
             )
-            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.7, step=0.1)
+            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
             # Display equity risk premium under sliders
             erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
             st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
