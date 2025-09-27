@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.13"
+APP_VERSION = "v1.3.14"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -346,7 +346,7 @@ def generate_simulation_results(
     ql, qh = np.percentile(df["Final Real Value"], [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     df_plot = df[(df["Final Real Value"] >= ql) & (df["Final Real Value"] <= qh)]
     fig = px.ecdf(df_plot, x="Final Real Value")
-    fig.update_layout(yaxis_title="% of sims", title=f"{NUM_RUNS:,} Probability you have this amount or less after {simulation_years}y")
+    fig.update_layout(yaxis_title="% of sims", title=f"Probability you have this amount or less after {simulation_years}y")
     fig.update_yaxes(tickformat=".0%", rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
     fig.update_xaxes(fixedrange=True)
