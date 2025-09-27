@@ -277,6 +277,41 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns, stoc
         index=index_labels,
     )
 
+# --- Utilities ---
+def _normalize_column_name(name: str) -> str:
+    """Normalize column names for robust matching (case-insensitive, remove punctuation)."""
+    return "".join(ch for ch in str(name).lower() if ch.isalnum() or ch.isspace()).strip()
+
+
+def extract_percent_list_from_df(df: pd.DataFrame, candidate_names):
+    """
+    Return a list[float] for the first matching column among candidate_names.
+    Accepts either strings like "12.3%" or numeric dtype; strips '%' if present.
+    Performs exact match on normalized names, then a loose token-inclusion match.
+    """
+    normalized_to_original = { _normalize_column_name(col): col for col in df.columns }
+
+    # Exact normalized match
+    for cand in candidate_names:
+        key = _normalize_column_name(cand)
+        if key in normalized_to_original:
+            series = df[normalized_to_original[key]]
+            if pd.api.types.is_numeric_dtype(series):
+                return series.astype(float).tolist()
+            return series.astype(str).str.rstrip('%').astype(float).tolist()
+
+    # Loose token match (all tokens contained in the column name)
+    for cand in candidate_names:
+        tokens = _normalize_column_name(cand).split()
+        for norm_col, orig_col in normalized_to_original.items():
+            if all(tok in norm_col for tok in tokens if tok):
+                series = df[orig_col]
+                if pd.api.types.is_numeric_dtype(series):
+                    return series.astype(float).tolist()
+                return series.astype(str).str.rstrip('%').astype(float).tolist()
+
+    raise KeyError(f"None of the candidate columns found: {candidate_names}")
+
 # --- Results processor ---
 def generate_simulation_results(
     start_value, real_spending, stock_prop_percent,
@@ -489,10 +524,41 @@ def main():
             ]
             sp_numeric = [float(v.rstrip('%')) for v in sp_values]
             
-            # Convert simulation percentages (stored as strings like "12.3%") to floats
-            stock_pct = negative_returns_df["Stock in your portfolio (%)"].str.rstrip('%').astype(float).tolist()
-            portfolio_pct = negative_returns_df["Your overall portfolio (%)"].str.rstrip('%').astype(float).tolist()
-            normal_pct = negative_returns_df["Normal distribution with same mean and vol as S&P '74 to '24 (%)"].str.rstrip('%').astype(float).tolist()
+            # Convert simulation percentages (strings like "12.3%" or numeric) to floats with robust column matching
+            try:
+                stock_pct = extract_percent_list_from_df(
+                    negative_returns_df,
+                    [
+                        "Stock in your portfolio (%)",
+                        "Stock in your portfolio",
+                        "Stock",
+                    ],
+                )
+                portfolio_pct = extract_percent_list_from_df(
+                    negative_returns_df,
+                    [
+                        "Your overall portfolio (%)",
+                        "Your overall portfolio",
+                        "Portfolio",
+                    ],
+                )
+                normal_pct = extract_percent_list_from_df(
+                    negative_returns_df,
+                    [
+                        "Normal distribution with same mean and vol as S&P '74 to '24 (%)",
+                        "Normal distribution with same mean and vol as S&P '74 to '24",
+                        "Normal distribution",
+                        "Normal",
+                    ],
+                )
+            except KeyError as e:
+                st.error(
+                    "Results table is missing expected columns for the negative-returns chart. "
+                    "Please re-run the simulation. If the issue persists, report this message: "
+                    f"{e}"
+                )
+                # Show the table but skip the chart block
+                stock_pct = portfolio_pct = normal_pct = None
             
             # Assemble long-form dataframe for grouped bars
             chart_df = pd.DataFrame({
@@ -504,33 +570,34 @@ def main():
                 "Percent": stock_pct + portfolio_pct + normal_pct + sp_numeric,
             })
             
-            neg_fig = px.line(
-                chart_df,
-                x="Threshold",
-                y="Percent",
-                color="Series",
-                markers=True,
-                labels={"Percent": "% of years"},
-            )
-            neg_fig.update_layout(
-                margin=dict(l=10, r=10, t=10, b=10),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                yaxis_title="% of years",
-                xaxis_title="",
-            )
-            neg_fig.update_yaxes(ticksuffix="%")
-            neg_fig.update_xaxes(categoryorder="array", categoryarray=threshold_labels, tickangle=-30)
-            
-            # Disable zoom/pan on negative returns chart
-            neg_fig.update_xaxes(fixedrange=True)
-            neg_fig.update_yaxes(fixedrange=True)
-            st.plotly_chart(neg_fig, use_container_width=True, config=dict(
-                scrollZoom=False,
-                displaylogo=False,
-                modeBarButtonsToRemove=[
-                    "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
-                ],
-            ))
+            if stock_pct is not None:
+                neg_fig = px.line(
+                    chart_df,
+                    x="Threshold",
+                    y="Percent",
+                    color="Series",
+                    markers=True,
+                    labels={"Percent": "% of years"},
+                )
+                neg_fig.update_layout(
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                    yaxis_title="% of years",
+                    xaxis_title="",
+                )
+                neg_fig.update_yaxes(ticksuffix="%")
+                neg_fig.update_xaxes(categoryorder="array", categoryarray=threshold_labels, tickangle=-30)
+                
+                # Disable zoom/pan on negative returns chart
+                neg_fig.update_xaxes(fixedrange=True)
+                neg_fig.update_yaxes(fixedrange=True)
+                st.plotly_chart(neg_fig, use_container_width=True, config=dict(
+                    scrollZoom=False,
+                    displaylogo=False,
+                    modeBarButtonsToRemove=[
+                        "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
+                    ],
+                ))
 
             # Histograms at bottom
             # Disable zoom/pan on ECDF chart
