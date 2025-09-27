@@ -346,7 +346,7 @@ def generate_simulation_results(
     ql, qh = np.percentile(df["Final Real Value"], [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     df_plot = df[(df["Final Real Value"] >= ql) & (df["Final Real Value"] <= qh)]
     fig = px.ecdf(df_plot, x="Final Real Value")
-    fig.update_layout(yaxis_title="% of sims", title=f"{NUM_RUNS:,} Sims After {simulation_years}y (ECDF, clipped)")
+    fig.update_layout(yaxis_title="% of sims", title=f"{NUM_RUNS:,} Probability you have this amount or less after {simulation_years}y")
     fig.update_yaxes(tickformat=".0%", rangemode="tozero")
     fig.update_xaxes(rangemode="tozero")
     fig.update_xaxes(fixedrange=True)
@@ -415,17 +415,17 @@ def main():
 
     with left_col:
         with st.expander("Initial Setup", expanded=True):
-            start_value = st.number_input("Starting Value ($)", value=7_000_000, step=50_000, min_value=0)
-            real_spending = st.number_input("Annual Real Spending ($)", value=150_000, step=1_000, min_value=0)
+            start_value = st.number_input("Starting Portfolio ($)", value=7_000_000, step=50_000, min_value=0)
+            real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=150_000, step=1_000, min_value=0)
             simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
         with st.expander("Asset Allocation", expanded=True):
-            stock_prop_percent = st.slider("Stock %", min_value=0, max_value=100, value=70, step=5)
+            stock_prop_percent = st.slider("Stock % in Portfolio", min_value=0, max_value=100, value=70, step=5)
         with st.expander("Economic Assumptions", expanded=True):
             inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
             inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-        with st.expander("Cash Assumptions", expanded=True):
-            cash_return_percent = st.slider("Cash Return (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
-            cash_vol_percent = st.slider("Cash Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
+        with st.expander("Cash/Bonds Assumptions", expanded=True):
+            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+            cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
 
         with st.expander("Stock Model Assumptions", expanded=True):
             # Default geometric mean implied by default log mean
@@ -497,15 +497,15 @@ def main():
             with m1:
                 st.metric("Median Value at end\n(today's money)", median_str)
             with m2:
-                st.metric("Success Rate\n(% runs with positive end value)", success_str)
+                st.metric("Likelihood do not run out of money\n(% runs end value more than zero)", success_str)
             with m3:
-                st.metric("Outperformance Rate\n(end value > starting value)", outperform_str)
+                st.metric("Likelihood end with more money than started (real terms)", outperform_str)
 
             # Move histograms after the tables
             st.subheader("Ending portfolio values in today's money")
             st.dataframe(summary_df)
 
-            st.subheader("% of years with extreme negative returns")
+            st.subheader("% of years with extreme negative returns compared to S&P historical and normal distribution")
             
             # Build grouped bar data (Stock, Portfolio, Normal, S&P historical) by threshold
             thresholds = [10, 15, 20, 25, 30, 35, 40, 45, 50]
