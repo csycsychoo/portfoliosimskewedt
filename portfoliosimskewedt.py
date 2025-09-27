@@ -431,6 +431,9 @@ def main():
                 value=_def_geom_mean_percent, step=0.1,
             )
             cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+            # Display equity risk premium under sliders
+            erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
+            st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
             inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
 
         with st.expander("Policy Options", expanded=True):
@@ -438,10 +441,6 @@ def main():
             rebalance_each_year = st.checkbox("Rebalance annually", value=False)
 
         with st.expander("Advanced Options", expanded=False):
-            # Calculate equity risk premium for display
-            erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
-            st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
-            
             inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
             cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
             stock_log_vol_percent = st.slider(
