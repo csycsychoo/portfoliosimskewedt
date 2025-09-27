@@ -405,7 +405,7 @@ def generate_simulation_results(
 # --- Streamlit UI ---
 def main():
     st.set_page_config(page_title="Portfolio Monte Carlo Simulator", layout="wide")
-    st.title("💰 Portfolio Longevity Simulator")
+    st.title("Retirement Portfolio Simulator with extreme events (fat tails, negative skew)")
     # No version display in sidebar
 
     if "results" not in st.session_state:
