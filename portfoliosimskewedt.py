@@ -418,46 +418,44 @@ def main():
             start_value = st.number_input("Starting Portfolio ($)", value=7_000_000, step=50_000, min_value=0)
             real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=150_000, step=1_000, min_value=0)
             simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
-        with st.expander("Asset Allocation", expanded=True):
             stock_prop_percent = st.slider("Stock % in Portfolio", min_value=0, max_value=100, value=70, step=5)
-        with st.expander("Economic Assumptions", expanded=True):
-            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
-            inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-        with st.expander("Cash/Bonds Assumptions", expanded=True):
-            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
-            cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-
-        with st.expander("Stock Model Assumptions", expanded=True):
+        
+        with st.expander("Return and economic assumptions", expanded=True):
             # Default geometric mean implied by default log mean
             # Avg geo mean + 1 = ((Pt)/(P0))^(1/t)=(exp(avg r * t))^ (1/t), where avg r is average log mean/continuously compounded rate
             # Avg geo mean = exp(avg r) -1
             _def_geom_mean_percent = float((np.exp(DEFAULT_STOCK_LOG_LOC) - 1.0) * 100.0)
             stock_geom_mean_percent = st.slider(
-                "Stock Return Average % (Geometric mean)",
+                "Stock Average Return % (Geometric mean)",
                 min_value=-20.0, max_value=30.0,
                 value=_def_geom_mean_percent, step=0.1,
             )
+            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
+
+        with st.expander("Policy Options", expanded=True):
+            withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
+            rebalance_each_year = st.checkbox("Rebalance annually", value=False)
+
+        with st.expander("Advanced Options", expanded=False):
+            # Calculate equity risk premium for display
             erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
             st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
+            
+            inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
+            cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
             stock_log_vol_percent = st.slider(
                 "Stock Log Vol (%)",
                 min_value=5.0, max_value=50.0,
                 value=float(DEFAULT_STOCK_LOG_SCALE * 100.0), step=0.5,
             )
-
-            # Compute implied log-mean (percent) for display and simulation
-            _growth = 1.0 + (stock_geom_mean_percent / 100.0)
-            _growth = np.maximum(_growth, MIN_INFL_FACTOR)
-            implied_log_mean_percent = float(np.log(_growth) * 100.0)
-
-            # Display removed per request; still computed for simulation
-
             skewt_nu = st.slider("Fat Tails (Nu)", min_value=3.0, max_value=20.0, value=float(DEFAULT_SKEWT_NU), step=0.5, help="Lower value = fatter tails")
             skewt_lambda = st.slider("Skewness (Lambda)", min_value=-0.9, max_value=0.9, value=float(DEFAULT_SKEWT_LAMBDA), step=0.05, help="Negative = left skew")
 
-        with st.expander("Policy Options", expanded=True):
-            withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
-            rebalance_each_year = st.checkbox("Rebalance annually", value=True)
+        # Compute implied log-mean (percent) for simulation
+        _growth = 1.0 + (stock_geom_mean_percent / 100.0)
+        _growth = np.maximum(_growth, MIN_INFL_FACTOR)
+        implied_log_mean_percent = float(np.log(_growth) * 100.0)
 
         run_sim = st.button("🚀 Run Simulation")
 
