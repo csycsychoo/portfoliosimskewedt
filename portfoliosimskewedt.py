@@ -365,7 +365,7 @@ def generate_simulation_results(
     s_ql, s_qh = np.percentile(flat, [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     stock_df = pd.DataFrame(flat[(flat >= s_ql) & (flat <= s_qh)], columns=["Annual Return"])
     stock_fig = px.histogram(stock_df, x="Annual Return", nbins=200, histnorm="percent")
-    stock_fig.update_layout(yaxis_title="%", title="Annual Stock Returns (clipped)")
+    stock_fig.update_layout(yaxis_title="%", title="Annual Stock Returns")
     stock_fig.update_xaxes(tickformat=".2%")
     stock_fig.update_xaxes(fixedrange=True)
     stock_fig.update_yaxes(fixedrange=True)
