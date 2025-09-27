@@ -18,8 +18,8 @@ APP_VERSION = "v1.3.14"
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
 DEFAULT_SKEWT_LAMBDA = -0.3
-DEFAULT_STOCK_LOG_LOC = 0.067657   # ~7% geometric => ln(1.07)
-DEFAULT_STOCK_LOG_SCALE = 0.17     # 17% log scale
+DEFAULT_STOCK_LOG_LOC = 0.067659   # 7% geometric => ln(1.07)
+DEFAULT_STOCK_LOG_SCALE = 0.185    # 18.5% log scale
 MIN_SIMPLE_RETURN = -0.99
 
 # Chart clipping
@@ -430,19 +430,19 @@ def main():
                 min_value=-20.0, max_value=30.0,
                 value=_def_geom_mean_percent, step=0.1,
             )
-            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
+            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.7, step=0.1)
             # Display equity risk premium under sliders
             erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
             st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
-            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
+            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=1.7, step=0.1)
 
         with st.expander("Policy Options", expanded=True):
             withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
             rebalance_each_year = st.checkbox("Rebalance annually", value=False)
 
         with st.expander("Advanced Options", expanded=False):
-            inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-            cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
+            inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=2.0, step=0.1)
+            cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.0, step=0.1)
             stock_log_vol_percent = st.slider(
                 "Stock Log Vol (%)",
                 min_value=5.0, max_value=50.0,
