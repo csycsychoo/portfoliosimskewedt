@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.9"
+APP_VERSION = "v1.3.10"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -456,58 +456,58 @@ def main():
             st.subheader("Ending portfolio values in today's money")
             st.dataframe(summary_df)
 
-			st.subheader("% of years with extreme negative returns")
-			
-			# Build grouped bar data (Stock, Portfolio, Normal, S&P historical) by threshold
-			thresholds = [10, 15, 20, 25, 30, 35, 40, 45, 50]
-			threshold_labels = [f"Under -{t}%" for t in thresholds]
-			# Historical S&P frequencies (string with % -> float)
-			sp_values = [
-				"12.5%",
-				"10.0%",
-				"7.5%",
-				"5.0%",
-				"2.5%",
-				"2.5%",
-				"0.0%",
-				"0.0%",
-				"0.0%",
-			]
-			sp_numeric = [float(v.rstrip('%')) for v in sp_values]
-			
-			# Convert simulation percentages (stored as strings like "12.3%") to floats
-			stock_pct = negative_returns_df["Stock Only (%)"].str.rstrip('%').astype(float).tolist()
-			portfolio_pct = negative_returns_df["Overall Portfolio (%)"].str.rstrip('%').astype(float).tolist()
-			normal_pct = negative_returns_df["Normal (same g, log vol) (%)"].str.rstrip('%').astype(float).tolist()
-			
-			# Assemble long-form dataframe for grouped bars
-			chart_df = pd.DataFrame({
-				"Threshold": threshold_labels * 4,
-				"Series": (["Stock"] * len(thresholds)
-						  + ["Portfolio"] * len(thresholds)
-						  + ["Normal"] * len(thresholds)
-						  + ["S&P Historical"] * len(thresholds)),
-				"Percent": stock_pct + portfolio_pct + normal_pct + sp_numeric,
-			})
-			
-			neg_fig = px.bar(
-				chart_df,
-				x="Threshold",
-				y="Percent",
-				color="Series",
-				barmode="group",
-				labels={"Percent": "% of years"},
-			)
-			neg_fig.update_layout(
-				margin=dict(l=10, r=10, t=10, b=10),
-				legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-				yaxis_title="% of years",
-				xaxis_title="",
-			)
-			neg_fig.update_yaxes(ticksuffix="%")
-			neg_fig.update_xaxes(categoryorder="array", categoryarray=threshold_labels, tickangle=-30)
-			
-			st.plotly_chart(neg_fig, use_container_width=True)
+            st.subheader("% of years with extreme negative returns")
+            
+            # Build grouped bar data (Stock, Portfolio, Normal, S&P historical) by threshold
+            thresholds = [10, 15, 20, 25, 30, 35, 40, 45, 50]
+            threshold_labels = [f"Under -{t}%" for t in thresholds]
+            # Historical S&P frequencies (string with % -> float)
+            sp_values = [
+                "12.5%",
+                "10.0%",
+                "7.5%",
+                "5.0%",
+                "2.5%",
+                "2.5%",
+                "0.0%",
+                "0.0%",
+                "0.0%",
+            ]
+            sp_numeric = [float(v.rstrip('%')) for v in sp_values]
+            
+            # Convert simulation percentages (stored as strings like "12.3%") to floats
+            stock_pct = negative_returns_df["Stock Only (%)"].str.rstrip('%').astype(float).tolist()
+            portfolio_pct = negative_returns_df["Overall Portfolio (%)"].str.rstrip('%').astype(float).tolist()
+            normal_pct = negative_returns_df["Normal (same g, log vol) (%)"].str.rstrip('%').astype(float).tolist()
+            
+            # Assemble long-form dataframe for grouped bars
+            chart_df = pd.DataFrame({
+                "Threshold": threshold_labels * 4,
+                "Series": (["Stock"] * len(thresholds)
+                          + ["Portfolio"] * len(thresholds)
+                          + ["Normal"] * len(thresholds)
+                          + ["S&P Historical"] * len(thresholds)),
+                "Percent": stock_pct + portfolio_pct + normal_pct + sp_numeric,
+            })
+            
+            neg_fig = px.bar(
+                chart_df,
+                x="Threshold",
+                y="Percent",
+                color="Series",
+                barmode="group",
+                labels={"Percent": "% of years"},
+            )
+            neg_fig.update_layout(
+                margin=dict(l=10, r=10, t=10, b=10),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                yaxis_title="% of years",
+                xaxis_title="",
+            )
+            neg_fig.update_yaxes(ticksuffix="%")
+            neg_fig.update_xaxes(categoryorder="array", categoryarray=threshold_labels, tickangle=-30)
+            
+            st.plotly_chart(neg_fig, use_container_width=True)
 
             # Histograms at bottom
             st.plotly_chart(hist_fig, use_container_width=True)
