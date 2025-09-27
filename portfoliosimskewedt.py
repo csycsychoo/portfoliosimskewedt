@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.12"
+APP_VERSION = "v1.3.13"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -32,6 +32,10 @@ SQRT_FLOOR = 1e-12
 MIN_R_FOR_SQRT = -0.999999        # ensure 1+r >= tiny positive before sqrt
 MIN_INFL_FACTOR = 1e-9            # avoid sqrt(<=0) and division by ~0 later
 
+
+# S&P 500 1974-2024 parameters for Normal comparison
+SNP7424_GEOM_MEAN = 0.1144       # 11.44%
+SNP7424_LOG_STD = 0.168824       # 16.8824%
 
 # --- Helpers ---
 def draw_skewt_log_returns(size, nu, lam, loc, scale):
@@ -237,15 +241,19 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns, stoc
 
     rows = []
     index_labels = []
+    # Use S&P 1974-2024 parameters for Normal comparison regardless of inputs
+    normal_mu = float(np.log(1.0 + SNP7424_GEOM_MEAN))
+    normal_sigma = float(SNP7424_LOG_STD)
+
     for threshold in thresholds:
         # "Under" semantics: strictly less than threshold
         stock_pct = np.mean(stock_flat < threshold) * 100
         portfolio_pct = np.mean(portfolio_flat < threshold) * 100
 
-        # Normal comparison with same geometric mean (mu = ln(1+g)) and log vol (sigma)
+        # Normal comparison with S&P '74-'24 geometric mean and log vol
         one_plus_k = 1.0 + threshold
-        if stock_log_sigma > 0.0 and one_plus_k > 0.0:
-            z = (np.log(one_plus_k) - float(stock_log_mu)) / float(stock_log_sigma)
+        if normal_sigma > 0.0 and one_plus_k > 0.0:
+            z = (np.log(one_plus_k) - normal_mu) / normal_sigma
             norm_pct = float(norm.cdf(z) * 100.0)
         else:
             # Degenerate cases: sigma == 0 => deterministic r = exp(mu)-1
@@ -253,7 +261,7 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns, stoc
             if one_plus_k <= 0.0:
                 norm_pct = 0.0
             else:
-                r_det = np.exp(float(stock_log_mu)) - 1.0
+                r_det = np.exp(normal_mu) - 1.0
                 norm_pct = 100.0 if r_det < threshold else 0.0
 
         rows.append([f"{stock_pct:.1f}%", f"{portfolio_pct:.1f}%", f"{norm_pct:.1f}%"])
@@ -262,9 +270,9 @@ def calculate_negative_return_percentages(stock_returns, portfolio_returns, stoc
     return pd.DataFrame(
         rows,
         columns=[
-            "Stock Only (%)",
-            "Overall Portfolio (%)",
-            "Normal (same g, log vol) (%)",
+            "Stock in your portfolio (%)",
+            "Your overall portfolio (%)",
+            "Normal distribution with same mean and vol as S&P '74 to '24 (%)",
         ],
         index=index_labels,
     )
@@ -467,7 +475,7 @@ def main():
             # Build grouped bar data (Stock, Portfolio, Normal, S&P historical) by threshold
             thresholds = [10, 15, 20, 25, 30, 35, 40, 45, 50]
             threshold_labels = [f"Under -{t}%" for t in thresholds]
-            # Historical S&P frequencies (string with % -> float)
+            # Historical Sp 500 from 1974 to 2024 frequencies (string with % -> float)
             sp_values = [
                 "12.5%",
                 "10.0%",
@@ -482,17 +490,17 @@ def main():
             sp_numeric = [float(v.rstrip('%')) for v in sp_values]
             
             # Convert simulation percentages (stored as strings like "12.3%") to floats
-            stock_pct = negative_returns_df["Stock Only (%)"].str.rstrip('%').astype(float).tolist()
-            portfolio_pct = negative_returns_df["Overall Portfolio (%)"].str.rstrip('%').astype(float).tolist()
-            normal_pct = negative_returns_df["Normal (same g, log vol) (%)"].str.rstrip('%').astype(float).tolist()
+            stock_pct = negative_returns_df["Stock in your portfolio (%)"].str.rstrip('%').astype(float).tolist()
+            portfolio_pct = negative_returns_df["Your overall portfolio (%)"].str.rstrip('%').astype(float).tolist()
+            normal_pct = negative_returns_df["Normal distribution with same mean and vol as S&P '74 to '24 (%)"].str.rstrip('%').astype(float).tolist()
             
             # Assemble long-form dataframe for grouped bars
             chart_df = pd.DataFrame({
                 "Threshold": threshold_labels * 4,
-                "Series": (["Stock"] * len(thresholds)
-                          + ["Portfolio"] * len(thresholds)
-                          + ["Normal"] * len(thresholds)
-                          + ["S&P Historical"] * len(thresholds)),
+                "Series": (["Stock in your portfolio"] * len(thresholds)
+                          + ["Your overall portfolio"] * len(thresholds)
+                          + ["Normal distribution with same mean and vol as S&P '74 to '24"] * len(thresholds)
+                          + ["Sp 500 from 1974 to 2024"] * len(thresholds)),
                 "Percent": stock_pct + portfolio_pct + normal_pct + sp_numeric,
             })
             
