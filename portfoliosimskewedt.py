@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.11"
+APP_VERSION = "v1.3.12"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -496,12 +496,12 @@ def main():
                 "Percent": stock_pct + portfolio_pct + normal_pct + sp_numeric,
             })
             
-            neg_fig = px.bar(
+            neg_fig = px.line(
                 chart_df,
                 x="Threshold",
                 y="Percent",
                 color="Series",
-                barmode="group",
+                markers=True,
                 labels={"Percent": "% of years"},
             )
             neg_fig.update_layout(
