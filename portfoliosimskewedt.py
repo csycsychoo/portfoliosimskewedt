@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.10"
+APP_VERSION = "v1.3.11"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -298,12 +298,16 @@ def generate_simulation_results(
     success_rate = np.mean(final_values > 0) * 100
     outperform_rate = np.mean(final_values > start_value) * 100
 
-    # Portfolio values chart
+    # Portfolio values chart (ECDF line)
     df = pd.DataFrame(final_values, columns=["Final Real Value"])
     ql, qh = np.percentile(df["Final Real Value"], [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
     df_plot = df[(df["Final Real Value"] >= ql) & (df["Final Real Value"] <= qh)]
-    fig = px.histogram(df_plot, x="Final Real Value", nbins=200, histnorm="percent")
-    fig.update_layout(yaxis_title="%", title=f"{NUM_RUNS:,} Sims After {simulation_years}y (clipped)")
+    fig = px.ecdf(df_plot, x="Final Real Value")
+    fig.update_layout(yaxis_title="% of sims", title=f"{NUM_RUNS:,} Sims After {simulation_years}y (ECDF, clipped)")
+    fig.update_yaxes(tickformat=".0%", rangemode="tozero")
+    fig.update_xaxes(rangemode="tozero")
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
     fig.add_vline(x=start_value, line_dash="dash", line_color="red")
     fig.add_vline(x=median_val, line_dash="dash", line_color="green")
 
@@ -320,6 +324,8 @@ def generate_simulation_results(
     stock_fig = px.histogram(stock_df, x="Annual Return", nbins=200, histnorm="percent")
     stock_fig.update_layout(yaxis_title="%", title="Annual Stock Returns (clipped)")
     stock_fig.update_xaxes(tickformat=".2%")
+    stock_fig.update_xaxes(fixedrange=True)
+    stock_fig.update_yaxes(fixedrange=True)
 
     # Negative returns analysis (include Normal comparison with same log-mean/vol)
     negative_returns_table = calculate_negative_return_percentages(
@@ -507,10 +513,26 @@ def main():
             neg_fig.update_yaxes(ticksuffix="%")
             neg_fig.update_xaxes(categoryorder="array", categoryarray=threshold_labels, tickangle=-30)
             
-            st.plotly_chart(neg_fig, use_container_width=True)
+            # Disable zoom/pan on negative returns chart
+            neg_fig.update_xaxes(fixedrange=True)
+            neg_fig.update_yaxes(fixedrange=True)
+            st.plotly_chart(neg_fig, use_container_width=True, config=dict(
+                scrollZoom=False,
+                displaylogo=False,
+                modeBarButtonsToRemove=[
+                    "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
+                ],
+            ))
 
             # Histograms at bottom
-            st.plotly_chart(hist_fig, use_container_width=True)
+            # Disable zoom/pan on ECDF chart
+            st.plotly_chart(hist_fig, use_container_width=True, config=dict(
+                scrollZoom=False,
+                displaylogo=False,
+                modeBarButtonsToRemove=[
+                    "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
+                ],
+            ))
             # Small horizontal labels beneath portfolio values histogram
             p_med, p_mean, p_std = portfolio_stat_labels
             c1, c2, c3 = st.columns(3)
@@ -521,7 +543,14 @@ def main():
             with c3:
                 st.caption(p_std)
 
-            st.plotly_chart(stock_fig, use_container_width=True)
+            # Disable zoom/pan on stock returns histogram
+            st.plotly_chart(stock_fig, use_container_width=True, config=dict(
+                scrollZoom=False,
+                displaylogo=False,
+                modeBarButtonsToRemove=[
+                    "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
+                ],
+            ))
             # Small horizontal labels beneath stock returns histogram
             # Support 4-5 labels (now includes Skew and Kurtosis)
             labels = list(stock_stat_labels)
