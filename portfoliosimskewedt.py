@@ -429,8 +429,8 @@ def main():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🇺🇸 USA Today", help="Stock geo return 10.6%, Inflation 2.9%, Cash return 4.8%"):
-                st.session_state["stock_geom_mean_percent"] = 10.6
+            if st.button("🇺🇸 USA Today", help="Stock geo return 8.67%, Inflation 2.9%, Cash return 4.8%"):
+                st.session_state["stock_geom_mean_percent"] = 8.67
                 st.session_state["inflation_rate_percent"] = 2.9
                 st.session_state["cash_return_percent"] = 4.8
                 st.session_state["current_preset"] = "USA Today"
