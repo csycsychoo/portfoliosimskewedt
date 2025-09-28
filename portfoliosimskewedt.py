@@ -432,6 +432,7 @@ def main():
                 st.session_state["stock_geom_mean_percent"] = 10.6
                 st.session_state["inflation_rate_percent"] = 2.96
                 st.session_state["cash_return_percent"] = 5.7
+                st.session_state["rebalance_each_year"] = True
                 st.rerun()
         
         with col3:
@@ -445,7 +446,7 @@ def main():
         
         with st.expander("Initial Setup", expanded=True):
             start_value = st.number_input("Starting Portfolio ($)", value=5_000_000, step=50_000, min_value=0)
-            real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=150_000, step=1_000, min_value=0)
+            real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=200_000, step=1_000, min_value=0)
             simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
             stock_prop_percent = st.slider("Stock % in Portfolio", min_value=0, max_value=100, value=70, step=5)
         
@@ -473,7 +474,7 @@ def main():
 
         with st.expander("Policy Options", expanded=True):
             withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
-            rebalance_each_year = st.checkbox("Rebalance annually", value=False)
+            rebalance_each_year = st.checkbox("Rebalance annually", value=True)
 
         with st.expander("Advanced Options", expanded=False):
             inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=2.0, step=0.1)
