@@ -452,6 +452,7 @@ def main():
                 st.session_state["stock_geom_mean_percent"] = 7.0
                 st.session_state["inflation_rate_percent"] = 1.7
                 st.session_state["cash_return_percent"] = 2.5
+                st.session_state["stock_log_vol_percent"] = 20.0
                 st.session_state["current_preset"] = "Singapore"
                 st.rerun()
         
