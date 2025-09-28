@@ -414,6 +414,35 @@ def main():
     left_col, right_col = st.columns([1, 3])
 
     with left_col:
+        # Easy defaults section
+        st.subheader("🎯 Easy defaults")
+        st.write("Quick preset buttons for common scenarios:")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("🇺🇸 USA Today", help="Stock geo return 10.6%, Inflation 2.9%, Cash return 4.8%"):
+                st.session_state["stock_geom_mean_percent"] = 10.6
+                st.session_state["inflation_rate_percent"] = 2.9
+                st.session_state["cash_return_percent"] = 4.8
+                st.rerun()
+        
+        with col2:
+            if st.button("📊 Trinity Study", help="Stock geo return 10.6%, Inflation 2.96%, Cash return 5.7%"):
+                st.session_state["stock_geom_mean_percent"] = 10.6
+                st.session_state["inflation_rate_percent"] = 2.96
+                st.session_state["cash_return_percent"] = 5.7
+                st.rerun()
+        
+        with col3:
+            if st.button("🇸🇬 Singapore", help="Stock geo return 7%, Inflation 1.7%, Cash return 2.5%"):
+                st.session_state["stock_geom_mean_percent"] = 7.0
+                st.session_state["inflation_rate_percent"] = 1.7
+                st.session_state["cash_return_percent"] = 2.5
+                st.rerun()
+        
+        st.divider()
+        
         with st.expander("Initial Setup", expanded=True):
             start_value = st.number_input("Starting Portfolio ($)", value=5_000_000, step=50_000, min_value=0)
             real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=150_000, step=1_000, min_value=0)
@@ -425,16 +454,22 @@ def main():
             # Avg geo mean + 1 = ((Pt)/(P0))^(1/t)=(exp(avg r * t))^ (1/t), where avg r is average log mean/continuously compounded rate
             # Avg geo mean = exp(avg r) -1
             _def_geom_mean_percent = float((np.exp(DEFAULT_STOCK_LOG_LOC) - 1.0) * 100.0)
+            
+            # Use session state values if set by buttons, otherwise use defaults
+            default_stock_geom = st.session_state.get("stock_geom_mean_percent", _def_geom_mean_percent)
+            default_cash_return = st.session_state.get("cash_return_percent", 2.5)
+            default_inflation = st.session_state.get("inflation_rate_percent", 1.7)
+            
             stock_geom_mean_percent = st.slider(
                 "Stock Average Return % (Geometric mean)",
                 min_value=-20.0, max_value=30.0,
-                value=_def_geom_mean_percent, step=0.1,
+                value=default_stock_geom, step=0.1,
             )
-            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=2.5, step=0.1)
+            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=default_cash_return, step=0.1)
             # Display equity risk premium under sliders
             erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
             st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
-            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=1.7, step=0.1)
+            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=default_inflation, step=0.1)
 
         with st.expander("Policy Options", expanded=True):
             withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
