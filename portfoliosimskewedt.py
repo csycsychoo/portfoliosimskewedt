@@ -19,7 +19,7 @@ APP_VERSION = "v1.3.14"
 DEFAULT_SKEWT_NU = 5.0
 DEFAULT_SKEWT_LAMBDA = -0.3
 DEFAULT_STOCK_LOG_LOC = 0.067659   # 7% geometric => ln(1.07)
-DEFAULT_STOCK_LOG_SCALE = 0.185    # 18.5% log scale
+DEFAULT_STOCK_LOG_SCALE = 0.17     # 17% log scale
 MIN_SIMPLE_RETURN = -0.99
 
 # Chart clipping
@@ -433,6 +433,7 @@ def main():
                 st.session_state["stock_geom_mean_percent"] = 8.67
                 st.session_state["inflation_rate_percent"] = 2.9
                 st.session_state["cash_return_percent"] = 4.8
+                st.session_state["stock_log_vol_percent"] = 17.0
                 st.session_state["current_preset"] = "USA Today"
                 st.rerun()
         
@@ -441,6 +442,7 @@ def main():
                 st.session_state["stock_geom_mean_percent"] = 10.6
                 st.session_state["inflation_rate_percent"] = 2.96
                 st.session_state["cash_return_percent"] = 5.7
+                st.session_state["stock_log_vol_percent"] = 17.0
                 st.session_state["rebalance_each_year"] = True
                 st.session_state["current_preset"] = "Trinity Study"
                 st.rerun()
@@ -503,10 +505,12 @@ def main():
         with st.expander("Advanced Options", expanded=False):
             inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=2.0, step=0.1)
             cash_vol_percent = st.slider("Cash/Bond Vol (%)", min_value=0.0, max_value=5.0, value=1.0, step=0.1)
+            # Use session state value if set by buttons, otherwise use default
+            default_stock_log_vol = st.session_state.get("stock_log_vol_percent", float(DEFAULT_STOCK_LOG_SCALE * 100.0))
             stock_log_vol_percent = st.slider(
                 "Stock Log Vol (%)",
                 min_value=5.0, max_value=50.0,
-                value=float(DEFAULT_STOCK_LOG_SCALE * 100.0), step=0.5,
+                value=default_stock_log_vol, step=0.5,
             )
             skewt_nu = st.slider("Fat Tails (Nu)", min_value=3.0, max_value=20.0, value=float(DEFAULT_SKEWT_NU), step=0.5, help="Lower value = fatter tails")
             skewt_lambda = st.slider("Skewness (Lambda)", min_value=-0.9, max_value=0.9, value=float(DEFAULT_SKEWT_LAMBDA), step=0.05, help="Negative = left skew")
