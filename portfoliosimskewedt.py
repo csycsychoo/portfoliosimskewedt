@@ -474,7 +474,7 @@ def main():
 
         with st.expander("Policy Options", expanded=True):
             withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
-            rebalance_each_year = st.checkbox("Rebalance annually", value=True)
+            rebalance_each_year = st.checkbox("Rebalance annually", value=st.session_state.get("rebalance_each_year", True))
 
         with st.expander("Advanced Options", expanded=False):
             inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=2.0, step=0.1)
