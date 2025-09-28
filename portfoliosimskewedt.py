@@ -418,13 +418,22 @@ def main():
         st.subheader("🎯 Easy defaults")
         st.write("Quick preset buttons for common scenarios:")
         
+        # Show current selection status
+        current_preset = st.session_state.get("current_preset", "Custom")
+        if current_preset != "Custom":
+            status_text = f"✅ Currently using: {current_preset}"
+            if current_preset == "Trinity Study":
+                status_text += " (with rebalancing enabled)"
+            st.success(status_text)
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🇺🇸 USA Today", help="Stock geo return 10.6%, Inflation 2.9%, Cash return 4.8%"):
-                st.session_state["stock_geom_mean_percent"] = 10.6
+            if st.button("🇺🇸 USA Today", help="Stock geo return 8.67%, Inflation 2.9%, Cash return 4.8%"):
+                st.session_state["stock_geom_mean_percent"] = 8.67
                 st.session_state["inflation_rate_percent"] = 2.9
                 st.session_state["cash_return_percent"] = 4.8
+                st.session_state["current_preset"] = "USA Today"
                 st.rerun()
         
         with col2:
@@ -432,6 +441,8 @@ def main():
                 st.session_state["stock_geom_mean_percent"] = 10.6
                 st.session_state["inflation_rate_percent"] = 2.96
                 st.session_state["cash_return_percent"] = 5.7
+                st.session_state["rebalance_each_year"] = True
+                st.session_state["current_preset"] = "Trinity Study"
                 st.rerun()
         
         with col3:
@@ -439,13 +450,14 @@ def main():
                 st.session_state["stock_geom_mean_percent"] = 7.0
                 st.session_state["inflation_rate_percent"] = 1.7
                 st.session_state["cash_return_percent"] = 2.5
+                st.session_state["current_preset"] = "Singapore"
                 st.rerun()
         
         st.divider()
         
         with st.expander("Initial Setup", expanded=True):
             start_value = st.number_input("Starting Portfolio ($)", value=5_000_000, step=50_000, min_value=0)
-            real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=150_000, step=1_000, min_value=0)
+            real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=200_000, step=1_000, min_value=0)
             simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
             stock_prop_percent = st.slider("Stock % in Portfolio", min_value=0, max_value=100, value=70, step=5)
         
@@ -464,16 +476,29 @@ def main():
                 "Stock Average Return % (Geometric mean)",
                 min_value=-20.0, max_value=30.0,
                 value=default_stock_geom, step=0.1,
+                key="stock_geom_slider"
             )
-            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=default_cash_return, step=0.1)
+            cash_return_percent = st.slider("Cash/Bond Return (%)", min_value=0.0, max_value=10.0, value=default_cash_return, step=0.1, key="cash_return_slider")
             # Display equity risk premium under sliders
             erp_geo_percent = float(stock_geom_mean_percent - cash_return_percent)
             st.write(f"Implied Equity Risk Premium (stock return - cash): {erp_geo_percent:.2f}%")
-            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=default_inflation, step=0.1)
+            inflation_rate_percent = st.slider("Inflation Mean (%)", min_value=0.0, max_value=10.0, value=default_inflation, step=0.1, key="inflation_slider")
+            
+            # Check if user manually changed sliders (reset preset to Custom)
+            if (stock_geom_mean_percent != default_stock_geom or 
+                cash_return_percent != default_cash_return or 
+                inflation_rate_percent != default_inflation):
+                st.session_state["current_preset"] = "Custom"
 
         with st.expander("Policy Options", expanded=True):
             withdrawal_timing = st.radio("Withdrawal Timing", options=["Start of year", "Mid-year"], index=1)
-            rebalance_each_year = st.checkbox("Rebalance annually", value=False)
+            rebalance_each_year = st.checkbox("Rebalance annually", value=st.session_state.get("rebalance_each_year", True))
+            
+            # Show rebalancing status
+            if rebalance_each_year:
+                st.info("🔄 Rebalancing is enabled - portfolio will be rebalanced to target allocation each year")
+            else:
+                st.warning("⚠️ Rebalancing is disabled - portfolio allocation will drift over time")
 
         with st.expander("Advanced Options", expanded=False):
             inflation_vol_percent = st.slider("Inflation Vol (%)", min_value=0.0, max_value=5.0, value=2.0, step=0.1)
