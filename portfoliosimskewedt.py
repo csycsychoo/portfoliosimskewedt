@@ -13,7 +13,7 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.14"
+APP_VERSION = "v1.3.15"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
@@ -399,7 +399,106 @@ def generate_simulation_results(
         f"Kurtosis (fat tails) of simple returns: {stock_kurt:.2f}"
     )
 
-    return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
+    return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels, median_val, success_rate, outperform_rate
+
+
+# --- Sensitivity Analysis ---
+def run_sensitivity_analysis(
+    start_value, real_spending, base_stock_prop_percent,
+    inflation_rate_percent, inflation_vol_percent,
+    cash_return_percent, cash_vol_percent,
+    stock_log_loc_percent, stock_log_scale_percent,
+    skewt_nu, skewt_lambda,
+    simulation_years,
+    withdrawal_timing, rebalance_each_year
+):
+    """
+    Run sensitivity analysis for:
+    1. Cash percentage from 0% to 50% in 10% increments
+    2. Stock returns -2% to +2% in 0.5% increments from input value
+    
+    Returns two dataframes with median, success rate, and outperformance rate.
+    """
+    
+    # Sensitivity 1: Cash percentage
+    cash_percentages = list(range(0, 51, 10))  # 0, 10, 20, 30, 40, 50
+    cash_sensitivity_results = []
+    
+    for cash_pct in cash_percentages:
+        stock_prop = (100 - cash_pct) / 100.0
+        cash_prop = cash_pct / 100.0
+        
+        final_values, _, _ = run_monte_carlo_simulation(
+            start_value, real_spending, stock_prop, cash_prop,
+            cash_return_percent / 100, cash_vol_percent / 100,
+            inflation_rate_percent / 100, inflation_vol_percent / 100,
+            stock_log_loc_percent / 100, stock_log_scale_percent / 100,
+            skewt_nu, skewt_lambda,
+            simulation_years,
+            withdrawal_timing, rebalance_each_year
+        )
+        
+        median_val = np.median(final_values)
+        success_rate = np.mean(final_values > 0) * 100
+        outperform_rate = np.mean(final_values > start_value) * 100
+        
+        cash_sensitivity_results.append({
+            'Cash %': f"{cash_pct}%",
+            'Median Value': f"${median_val:,.0f}",
+            'Success Rate': f"{success_rate:.1f}%",
+            'Outperformance Rate': f"{outperform_rate:.1f}%"
+        })
+    
+    cash_sensitivity_df = pd.DataFrame(cash_sensitivity_results)
+    
+    # Sensitivity 2: Stock returns
+    # Convert base stock geometric mean to log mean
+    base_stock_geom = (np.exp(stock_log_loc_percent / 100) - 1.0) * 100.0
+    
+    # Range from -2% to +2% in 0.5% increments
+    stock_return_adjustments = np.arange(-2.0, 2.5, 0.5)
+    stock_sensitivity_results = []
+    
+    for adjustment in stock_return_adjustments:
+        adjusted_geom = base_stock_geom + adjustment
+        # Convert back to log mean
+        _growth = 1.0 + (adjusted_geom / 100.0)
+        _growth = np.maximum(_growth, MIN_INFL_FACTOR)
+        adjusted_log_mean_percent = float(np.log(_growth) * 100.0)
+        
+        stock_prop = base_stock_prop_percent / 100.0
+        cash_prop = 1 - stock_prop
+        
+        final_values, _, _ = run_monte_carlo_simulation(
+            start_value, real_spending, stock_prop, cash_prop,
+            cash_return_percent / 100, cash_vol_percent / 100,
+            inflation_rate_percent / 100, inflation_vol_percent / 100,
+            adjusted_log_mean_percent / 100, stock_log_scale_percent / 100,
+            skewt_nu, skewt_lambda,
+            simulation_years,
+            withdrawal_timing, rebalance_each_year
+        )
+        
+        median_val = np.median(final_values)
+        success_rate = np.mean(final_values > 0) * 100
+        outperform_rate = np.mean(final_values > start_value) * 100
+        
+        # Format the adjustment
+        if adjustment >= 0:
+            adj_str = f"+{adjustment:.1f}%"
+        else:
+            adj_str = f"{adjustment:.1f}%"
+        
+        stock_sensitivity_results.append({
+            'Stock Return Adjustment': adj_str,
+            'Median Value': f"${median_val:,.0f}",
+            'Success Rate': f"{success_rate:.1f}%",
+            'Outperformance Rate': f"{outperform_rate:.1f}%"
+        })
+    
+    stock_sensitivity_df = pd.DataFrame(stock_sensitivity_results)
+    
+    return cash_sensitivity_df, stock_sensitivity_df
 
 
 # --- Streamlit UI ---
@@ -410,6 +509,8 @@ def main():
 
     if "results" not in st.session_state:
         st.session_state["results"] = None
+    if "sensitivity_results" not in st.session_state:
+        st.session_state["sensitivity_results"] = None
 
     left_col, right_col = st.columns([1, 3])
 
@@ -522,6 +623,7 @@ def main():
         implied_log_mean_percent = float(np.log(_growth) * 100.0)
 
         run_sim = st.button("🚀 Run Simulation")
+        run_sensitivity = st.button("📊 Run Sensitivity Analysis", help="Run sensitivity analysis on cash % and stock returns")
 
     with right_col:
         if run_sim:
@@ -541,6 +643,25 @@ def main():
                 withdrawal_timing,
                 rebalance_each_year,
             )
+        
+        if run_sensitivity:
+            with st.spinner("Running sensitivity analysis... This may take a minute."):
+                st.session_state["sensitivity_results"] = run_sensitivity_analysis(
+                    start_value,
+                    real_spending,
+                    stock_prop_percent,
+                    inflation_rate_percent,
+                    inflation_vol_percent,
+                    cash_return_percent,
+                    cash_vol_percent,
+                    implied_log_mean_percent,
+                    stock_log_vol_percent,
+                    skewt_nu,
+                    skewt_lambda,
+                    int(simulation_years),
+                    withdrawal_timing,
+                    rebalance_each_year,
+                )
 
         if st.session_state["results"] is not None:
             (
@@ -553,6 +674,9 @@ def main():
                 negative_returns_df,
                 portfolio_stat_labels,
                 stock_stat_labels,
+                median_val,
+                success_rate,
+                outperform_rate,
             ) = st.session_state["results"]
 
             m1, m2, m3 = st.columns(3)
@@ -695,9 +819,25 @@ def main():
             for col, label in zip(cols, labels):
                 with col:
                     st.caption(label)
+        
+        # Display sensitivity analysis results
+        if st.session_state["sensitivity_results"] is not None:
+            st.divider()
+            st.header("Sensitivity Analysis")
+            
+            cash_sensitivity_df, stock_sensitivity_df = st.session_state["sensitivity_results"]
+            
+            st.subheader("Cash Percentage Sensitivity")
+            st.write("How outcomes change with different cash allocations (0% to 50% in 10% increments)")
+            st.dataframe(cash_sensitivity_df, use_container_width=True)
+            
+            st.subheader("Stock Return Sensitivity")
+            st.write("How outcomes change with stock returns ±2% from input value (in 0.5% increments)")
+            st.dataframe(stock_sensitivity_df, use_container_width=True)
             
         else:
-            st.info("Set your assumptions on the left and click 'Run Simulation'.")
+            if st.session_state["results"] is None:
+                st.info("Set your assumptions on the left and click 'Run Simulation'.")
 
         # Version footer
         st.caption(f"App version: {APP_VERSION}")
