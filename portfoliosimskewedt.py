@@ -13,13 +13,13 @@ SIMULATION_YEARS = 50
 NUM_RUNS = 10_000
 
 # App version (update this on each change)
-APP_VERSION = "v1.3.14"
+APP_VERSION = "v1.3.15"
 
 # Default Stock model parameters (Hansen skew-t on log-returns)
 DEFAULT_SKEWT_NU = 5.0
 DEFAULT_SKEWT_LAMBDA = -0.3
 DEFAULT_STOCK_LOG_LOC = 0.067659   # 7% geometric => ln(1.07)
-DEFAULT_STOCK_LOG_SCALE = 0.17     # 17% log scale
+DEFAULT_STOCK_LOG_SCALE = 0.20     # 20% log scale (Singapore default)
 MIN_SIMPLE_RETURN = -0.99
 
 # Chart clipping
@@ -430,6 +430,28 @@ def generate_simulation_results(
     return f"${median_val:,.0f}", f"{success_rate:.1f}%", f"{outperform_rate:.1f}%", fig, stock_fig, summary_percentiles_df, negative_returns_table, portfolio_stat_labels, stock_stat_labels
 
 
+# --- UI helpers ---
+def currency_input(label: str, key: str, default_value: int) -> int:
+    """Render a text input that displays comma-separated dollars and returns an int value."""
+    text_key = f"{key}_text"
+    # Initialize on first load
+    if text_key not in st.session_state:
+        st.session_state[text_key] = f"{int(default_value):,}"
+        st.session_state[key] = int(default_value)
+
+    def _on_change():
+        raw = str(st.session_state.get(text_key, ""))
+        cleaned = "".join(ch for ch in raw if ch.isdigit())
+        value = int(cleaned) if cleaned else 0
+        if value < 0:
+            value = 0
+        st.session_state[key] = value
+        st.session_state[text_key] = f"{value:,}"
+
+    st.text_input(label, key=text_key, on_change=_on_change)
+    return int(st.session_state.get(key, int(default_value)))
+
+
 # --- Streamlit UI ---
 def main():
     st.set_page_config(page_title="Portfolio Monte Carlo Simulator", layout="wide")
@@ -438,6 +460,10 @@ def main():
 
     if "results" not in st.session_state:
         st.session_state["results"] = None
+
+    # Default to Singapore preset on first load
+    if "current_preset" not in st.session_state:
+        st.session_state["current_preset"] = "Singapore"
 
     left_col, right_col = st.columns([1, 3])
 
@@ -487,8 +513,8 @@ def main():
         st.divider()
         
         with st.expander("Initial Setup", expanded=True):
-            start_value = st.number_input("Starting Portfolio ($)", value=5_000_000, step=50_000, min_value=0)
-            real_spending = st.number_input("Annual Withdrawal (grows with inflation) ($)", value=200_000, step=1_000, min_value=0)
+            start_value = currency_input("Starting Portfolio ($)", key="start_value", default_value=5_000_000)
+            real_spending = currency_input("Annual Withdrawal (grows with inflation) ($)", key="real_spending", default_value=150_000)
             simulation_years = st.number_input("Simulation Years", value=50, step=1, min_value=1)
             stock_prop_percent = st.slider("Stock % in Portfolio", min_value=0, max_value=100, value=70, step=5)
         
