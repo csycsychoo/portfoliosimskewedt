@@ -408,7 +408,7 @@ def generate_simulation_results(
 
     # Percentile summary: show only 10%..90% percentiles, formatted as $ with thousands separators
     pct_levels = list(range(10, 100, 10))  # 10,20,...,90
-    pct_values = np.percentile(df["Final Real Value"].values, pct_levels)
+    pct_values = np.percentile(final_values, pct_levels)
     pct_rows = [f"{p}%" for p in pct_levels]
     pct_formatted = [f"${int(round(v)):,}" for v in pct_values]
     summary_percentiles_df = pd.DataFrame({"Outcome percentiles": pct_formatted}, index=pct_rows)
