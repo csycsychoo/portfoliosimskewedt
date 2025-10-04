@@ -136,6 +136,10 @@ def run_monte_carlo_simulation(
     
     # Track portfolio returns for analysis
     portfolio_returns_matrix = np.zeros((NUM_RUNS, simulation_years))
+    
+    # Track year-by-year portfolio values (in real terms)
+    portfolio_values_over_time = np.zeros((NUM_RUNS, simulation_years + 1), dtype=np.float64)
+    portfolio_values_over_time[:, 0] = start_value  # Initial values
 
     if rebalance_each_year:
         portfolio_values = np.full(NUM_RUNS, start_value, dtype=np.float64)
@@ -223,11 +227,16 @@ def run_monte_carlo_simulation(
 
         # Update inflation compounding
         cumulative_inflation *= infl_factor
+        
+        # Store real portfolio value for this year
+        current_nominal = portfolio_values if rebalance_each_year else stock_values + cash_values
+        denom = np.maximum(cumulative_inflation, EPS)
+        portfolio_values_over_time[:, year + 1] = current_nominal / denom
 
     final_nominal = portfolio_values if rebalance_each_year else stock_values + cash_values
     denom = np.maximum(cumulative_inflation, EPS)  # guard division
     final_real = final_nominal / denom
-    return final_real, stock_returns_matrix, portfolio_returns_matrix
+    return final_real, stock_returns_matrix, portfolio_returns_matrix, portfolio_values_over_time
 
 
 # --- Negative returns analysis ---
@@ -325,7 +334,7 @@ def generate_simulation_results(
     stock_prop = stock_prop_percent / 100.0
     cash_prop = 1 - stock_prop
 
-    final_values, stock_returns, portfolio_returns = run_monte_carlo_simulation(
+    final_values, stock_returns, portfolio_returns, portfolio_values_over_time = run_monte_carlo_simulation(
         start_value, real_spending, stock_prop, cash_prop,
         cash_return_percent / 100, cash_vol_percent / 100,
         inflation_rate_percent / 100, inflation_vol_percent / 100,
@@ -341,18 +350,37 @@ def generate_simulation_results(
     success_rate = np.mean(final_values > 0) * 100
     outperform_rate = np.mean(final_values > start_value) * 100
 
-    # Portfolio values chart (ECDF line)
-    df = pd.DataFrame(final_values, columns=["Final Real Value"])
-    ql, qh = np.percentile(df["Final Real Value"], [PLOT_CLIP_LOW, PLOT_CLIP_HIGH])
-    df_plot = df[(df["Final Real Value"] >= ql) & (df["Final Real Value"] <= qh)]
-    fig = px.ecdf(df_plot, x="Final Real Value")
-    fig.update_layout(yaxis_title="% of sims", title=f"Probability you have this amount or less after {simulation_years}y")
-    fig.update_yaxes(tickformat=".0%", rangemode="tozero")
-    fig.update_xaxes(rangemode="tozero")
+    # Year-by-year percentile trajectory chart
+    years = np.arange(simulation_years + 1)
+    percentiles = [10, 25, 50, 75, 90]
+    percentile_data = []
+    
+    for year in range(simulation_years + 1):
+        year_values = portfolio_values_over_time[:, year]
+        for pct in percentiles:
+            pct_value = np.percentile(year_values, pct)
+            percentile_data.append({
+                "Year": year,
+                "Percentile": f"{pct}th",
+                "Portfolio Value": pct_value
+            })
+    
+    percentile_df = pd.DataFrame(percentile_data)
+    fig = px.line(
+        percentile_df, 
+        x="Year", 
+        y="Portfolio Value", 
+        color="Percentile",
+        title=f"Year-by-Year Portfolio Value Trajectories (Real Terms)"
+    )
+    fig.update_layout(
+        yaxis_title="Portfolio Value ($)",
+        xaxis_title="Year",
+        hovermode="x unified"
+    )
+    fig.update_yaxes(rangemode="tozero")
     fig.update_xaxes(fixedrange=True)
     fig.update_yaxes(fixedrange=True)
-    fig.add_vline(x=start_value, line_dash="dash", line_color="red")
-    fig.add_vline(x=median_val, line_dash="dash", line_color="green")
 
     # Stock returns chart
     flat = stock_returns.flatten()
@@ -563,7 +591,15 @@ def main():
             with m3:
                 st.metric("Likelihood end with more money than started (real terms)", outperform_str)
 
-            # Move histograms after the tables
+            # Year-by-year percentile chart
+            st.plotly_chart(hist_fig, use_container_width=True, config=dict(
+                scrollZoom=False,
+                displaylogo=False,
+                modeBarButtonsToRemove=[
+                    "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
+                ],
+            ))
+
             st.subheader("Ending portfolio values in today's money")
             st.dataframe(summary_df)
 
@@ -661,25 +697,7 @@ def main():
                     ],
                 ))
 
-            # Histograms at bottom
-            # Disable zoom/pan on ECDF chart
-            st.plotly_chart(hist_fig, use_container_width=True, config=dict(
-                scrollZoom=False,
-                displaylogo=False,
-                modeBarButtonsToRemove=[
-                    "zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"
-                ],
-            ))
-            # Small horizontal labels beneath portfolio values histogram
-            p_med, p_mean, p_std = portfolio_stat_labels
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.caption(p_med)
-            with c2:
-                st.caption(p_mean)
-            with c3:
-                st.caption(p_std)
-
+            # Stock returns histogram at bottom
             # Disable zoom/pan on stock returns histogram
             st.plotly_chart(stock_fig, use_container_width=True, config=dict(
                 scrollZoom=False,
