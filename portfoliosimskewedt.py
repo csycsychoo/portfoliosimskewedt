@@ -350,28 +350,41 @@ def generate_simulation_results(
     success_rate = np.mean(final_values > 0) * 100
     outperform_rate = np.mean(final_values > start_value) * 100
 
-    # Year-by-year percentile trajectory chart
+    # Percentile trajectory chart based on single-run paths selected
+    # by final outcome percentiles (e.g., the run at the 50th percentile
+    # of ending value, and its full trajectory over time).
     years = np.arange(simulation_years + 1)
     percentiles = [10, 25, 50, 75, 90]
     percentile_data = []
-    
-    for year in range(simulation_years + 1):
-        year_values = portfolio_values_over_time[:, year]
-        for pct in percentiles:
-            pct_value = np.percentile(year_values, pct)
+
+    # Choose one run per percentile using the rank of final values
+    n_runs = final_values.shape[0]
+    order = np.argsort(final_values)  # ascending by ending value
+
+    def index_for_percentile(p):
+        rank = int(round((p / 100.0) * (n_runs - 1)))
+        return order[rank]
+
+    percentile_run_index = {p: index_for_percentile(p) for p in percentiles}
+
+    # Build long-form data for the selected runs' entire paths
+    for pct in percentiles:
+        run_idx = percentile_run_index[pct]
+        run_path = portfolio_values_over_time[run_idx, :]
+        for year, value in enumerate(run_path):
             percentile_data.append({
                 "Year": year,
                 "Percentile": f"{pct}th",
-                "Portfolio Value": pct_value
+                "Portfolio Value": value
             })
-    
+
     percentile_df = pd.DataFrame(percentile_data)
     fig = px.line(
-        percentile_df, 
-        x="Year", 
-        y="Portfolio Value", 
+        percentile_df,
+        x="Year",
+        y="Portfolio Value",
         color="Percentile",
-        title=f"Year-by-Year Portfolio Value Trajectories (Real Terms)"
+        title="Percentile Trajectories by Final Outcome (Real Terms)"
     )
     fig.update_layout(
         yaxis_title="Portfolio Value ($)",
