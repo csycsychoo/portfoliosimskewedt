@@ -195,26 +195,23 @@ def run_monte_carlo_simulation(
 
             portfolio_values[portfolio_values < 0] = 0.0
         else:
+            # Weighted portfolio return uses start-of-year weights for both
+            # timings (the weighted *return rate* doesn't depend on the
+            # withdrawal, which only shifts dollar amounts).
+            pre_total = stock_values + cash_values
+            w_stock_pre = np.zeros_like(pre_total)
+            mask = pre_total > 0
+            np.divide(stock_values, pre_total, out=w_stock_pre, where=mask)
+            r_port = w_stock_pre * r_stock + (1.0 - w_stock_pre) * r_cash
+            portfolio_returns_matrix[:, year] = r_port
+
             if withdrawal_timing == "Start of year":
                 stock_values, cash_values = apply_withdrawal(
                     None, spend_soy, stock_values, cash_values
                 )
                 stock_values *= np.maximum(1.0 + r_stock, 0.0)
                 cash_values *= np.maximum(1.0 + r_cash, 0.0)
-                post_total = stock_values + cash_values
-                w_stock_post = np.zeros_like(post_total)
-                mask = post_total > 0
-                np.divide(stock_values, post_total, out=w_stock_post, where=mask)
-                r_port = w_stock_post * r_stock + (1.0 - w_stock_post) * r_cash
-                portfolio_returns_matrix[:, year] = r_port
             else:
-                pre_total = stock_values + cash_values
-                w_stock_pre = np.zeros_like(pre_total)
-                mask = pre_total > 0
-                np.divide(stock_values, pre_total, out=w_stock_pre, where=mask)
-                r_port = w_stock_pre * r_stock + (1.0 - w_stock_pre) * r_cash
-                portfolio_returns_matrix[:, year] = r_port
-
                 stock_half = np.sqrt(np.maximum(1.0 + r_stock, SQRT_FLOOR))
                 cash_half = np.sqrt(np.maximum(1.0 + r_cash, SQRT_FLOOR))
 
