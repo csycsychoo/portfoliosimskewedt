@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/simulate.py": {
+      "runtime": "@vercel/python@4.3.0",
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}
